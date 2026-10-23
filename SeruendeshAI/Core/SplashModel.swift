@@ -6,8 +6,8 @@ enum SplashPhase: String, Sendable {
 }
 
 struct SplashTiming: Sendable {
-    var greetingDuration = 0.34
-    var revealDuration = 0.18
+    var greetingDuration = 0.75
+    var revealDuration = 0.25
     var reducedMotionHold = 0.02
     var reducedMotionFade = 0.12
 

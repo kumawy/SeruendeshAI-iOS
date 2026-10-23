@@ -6,9 +6,9 @@ import Testing
 #endif
 
 struct SplashModelTests {
-    @Test func launchGreetingDoesNotDelayTheMainScreenBeyondEightTenthsOfASecond() {
+    @Test func launchGreetingLastsAboutASecondInsteadOfFlashingPast() {
         let timing = SplashTiming()
-        #expect(timing.totalDuration <= 0.8)
+        #expect((0.9...1.2).contains(timing.totalDuration))
     }
 
     @Test func reducedMotionCompletesWithinAQuarterSecondAndBeforeFullMotion() {

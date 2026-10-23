@@ -21,3 +21,7 @@
 - Inspected native map in both themes, largest-text welcome, calendar editor, stop editor and final restored chat screenshot. No temporary diagnostics remain.
 - Live-account lifecycle tests intentionally not run: they create/delete real accounts. All networked unit coverage uses stubs. Physical-device testing was not part of this run.
 - New/private GitHub baseline tag remains unchanged; tested improvement checkpoint will be committed to main.
+
+## Splash pacing follow-up
+- User found0.52s too abrupt. Normal greeting now0.75s plus0.25s fade (1.0s total). Reduced Motion stays0.14s; no other launch behavior changed.
+- Updated lower/upper pacing regression: old0.52s observed RED; all13 splash core tests GREEN. Two targeted iOS launch/ReduceMotion UI tests PASS; build and whitespace check pass. Read-only independent review found no timing coupling issues.

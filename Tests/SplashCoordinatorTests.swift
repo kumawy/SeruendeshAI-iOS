@@ -16,7 +16,7 @@ struct SplashCoordinatorTests {
         #expect(coordinator.phase == .greeting)
         #expect(gate.hasStarted && !gate.hasCompleted)
 
-        try await waitUntilDone(coordinator, timeout: 0.8)
+        try await waitUntilDone(coordinator, timeout: 1.3)
         #expect(gate.hasCompleted)
         #expect(coordinator.revealProgress == 1)
     }
