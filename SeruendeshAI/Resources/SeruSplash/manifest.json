@@ -1,0 +1,25 @@
+{
+  "fps": 30,
+  "frameCount": 54,
+  "durationSeconds": 1.8,
+  "canvasWidth": 768,
+  "canvasHeight": 768,
+  "framesPattern": "frames/%04d.png",
+  "startIndex": 0,
+  "loop": false,
+  "alpha": true,
+  "holdStartSeconds": 0.2,
+  "settledFromSeconds": 1.5333333333333334,
+  "handoffFrame": 53,
+  "renderer": "Remotion",
+  "source": "original mascot raster, continuous local deformation",
+  "rendererVersion": "4.0.537",
+  "features": [
+    "two wing waves",
+    "short blink",
+    "1.7 degree head tilt",
+    "subtle breathing",
+    "body and bag follow-through",
+    "planted feet"
+  ]
+}

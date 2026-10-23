@@ -1,0 +1,56 @@
+# SeruendeshAI · iOS
+
+Нативное SwiftUI-приложение для прогулок по Астане: карта, рекомендации и чат с Серу, афиша, избранное и аккаунт. [Исходные макеты Figma](https://www.figma.com/design/YpZQW2dzJhHjPmcnQaytgE/Untitled?node-id=0-1).
+
+## Запуск
+
+1. Откройте `SeruendeshAI.xcodeproj` в Xcode.
+2. Выберите схему **SeruendeshAI** и iPhone Simulator.
+3. Нажмите **⌘R**.
+
+Требуется Xcode с iOS SDK 26 или новее. Минимальная версия iOS — 26.0. Внешних Swift-пакетов и клиентских ключей API нет. Для установки на iPhone выберите свой Team в Signing & Capabilities.
+
+## Сервер и данные
+
+По умолчанию временно включены локальные демоданные: места, события, маршруты, изображения и ответы чата работают без бэкенда. Избранное сохраняется на устройстве. Вход в аккаунт и серверная синхронизация доступны только в режиме `live`; ответы чата и поиск по фото в локальном режиме демонстрационные.
+
+Чтобы вернуть бэкенд, добавьте аргумент запуска `-seru.dataMode live` в схеме Xcode. По умолчанию в этом режиме используется `https://seruendesh.site`: чат, фотографии, рекомендации, события, геокодирование и маршруты загружаются через API, карта использует MapKit. При ошибке сети приложение показывает ошибку и позволяет повторить запрос. Для другого HTTPS-сервера задайте `SERU_API_BASE_URL` в окружении схемы Xcode или аргумент запуска `-seru.apiBaseURL https://your-server.example`. Аргумент `-seru.dataMode demo` явно выбирает локальные данные, как и запуск без указания режима.
+
+Гостевой режим доступен без регистрации. После входа избранные места синхронизируются через `/api/me/saved`; импорт гостевых мест запускается отдельной кнопкой. Сессия хранится в cookie и Keychain, пароли не сохраняются. Маршруты, закладки событий, тема и старт прогулки хранятся локально; переписка — в памяти сессии.
+
+Восстановление пароля использует `/api/auth/password-reset/request` и `/api/auth/password-reset/confirm`. Доступность отправки писем определяется сервером. Полученную ссылку или код можно вставить в форму; схема `seruendesh://reset-password?token=…` открывает её в приложении. Для автоматического открытия HTTPS-ссылок потребуются Universal Links на сервере и Associated Domains.
+
+## Структура
+
+- `SeruendeshAI/Core/` — API, модели, состояние и хранение данных.
+- `SeruendeshAI/Features/` — экраны и взаимодействия.
+- `SeruendeshAI/DesignSystem/` — цвета и общие компоненты.
+- `SeruendeshAI/Assets.xcassets/` — используемые изображения, иконки и маскот.
+- `SeruendeshAI/SeruSplash/` — воспроизведение заставки и Metal-эффект перехода.
+- `SeruendeshAI/Resources/SeruSplash/` — манифест и 54 кадра заставки.
+- `Design/Brand/` — исходные SVG иконки приложения для светлой и тёмной темы.
+- `Scripts/render-app-icon.swift` — экспорт иконки приложения из этих SVG.
+- `Tests/`, `UITests/` — модульные и UI-тесты.
+- `project.yml` — конфигурация XcodeGen; `Package.swift` — отдельные тесты ядра.
+
+## Проверки
+
+```sh
+swift test
+xcodegen generate
+xcodebuild -project SeruendeshAI.xcodeproj -scheme SeruendeshAI \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  -derivedDataPath .build/ios build CODE_SIGNING_ALLOWED=NO
+```
+
+UI-тесты запускаются через **⌘U** или `xcodebuild test` с тем же назначением. Основные сценарии используют деморежим. `LiveServerUITests` выполняет реальный запрос рекомендаций; `AccountUITests` создаёт временный аккаунт, проверяет синхронизацию и удаляет тестовые данные. Скриншоты прикладываются к результатам тестов.
+
+## Исходники графики
+
+Логотип Secret Path предоставлен пользователем: оригинал хранится в `Design/Brand/secret-path.svg`, тёмный вариант — рядом. Для повторного экспорта непрозрачных PNG 1024×1024 выполните из корня проекта:
+
+```sh
+swift Scripts/render-app-icon.swift
+```
+
+Иконки вкладок из набора **Seru Outline Icons** хранятся в `Assets.xcassets/Navigation/` с вариантами для обеих тем и выбранного состояния. Маскот `SeruMascot` — оригинальный прозрачный PNG 1230×1278 из `frontend/public/mascot/seru-wave.png` проекта `hackaton/.seruendeshai-worktrees/big-data`, скопированный без изменения пикселей.

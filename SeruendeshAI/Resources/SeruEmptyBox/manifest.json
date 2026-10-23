@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "fps": 30,
+  "frameCount": 180,
+  "durationSeconds": 6,
+  "width": 640,
+  "height": 640,
+  "format": "RGBA PNG",
+  "posterFrame": 120,
+  "loop": true
+}

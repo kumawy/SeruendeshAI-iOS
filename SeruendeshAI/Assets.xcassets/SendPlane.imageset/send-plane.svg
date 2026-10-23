@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <!-- Vector outline matched to the send icon supplied by the user. -->
+  <g stroke="#231F20" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M77 188 435 77 322 441 259 259 77 188Z"/>
+    <path d="M259 259 345 165"/>
+    <path d="M126 259 77 318M190 322 77 435M253 386 194 435"/>
+  </g>
+</svg>

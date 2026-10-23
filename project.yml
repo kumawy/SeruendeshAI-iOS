@@ -1,0 +1,77 @@
+name: SeruendeshAI
+options:
+  bundleIdPrefix: kz.seruendesh
+  deploymentTarget:
+    iOS: '26.0'
+  createIntermediateGroups: true
+  xcodeVersion: '27.0'
+settings:
+  base:
+    SWIFT_VERSION: '6.0'
+    DEVELOPMENT_TEAM: ''
+    CODE_SIGN_STYLE: Automatic
+    TARGETED_DEVICE_FAMILY: '1'
+    IPHONEOS_DEPLOYMENT_TARGET: '26.0'
+    SWIFT_STRICT_CONCURRENCY: complete
+targets:
+  SeruendeshAI:
+    type: application
+    platform: iOS
+    info:
+      path: SeruendeshAI/Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLName: kz.seruendesh.frontend.password-reset
+            CFBundleURLSchemes: [seruendesh]
+    sources:
+      - path: SeruendeshAI
+        excludes:
+          - Resources/SeruSplash
+          - Resources/SeruEmptyBox
+          - Resources/SeruMotion
+      - path: SeruendeshAI/Resources/SeruSplash
+        type: folder
+        buildPhase: resources
+      - path: SeruendeshAI/Resources/SeruMotion
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: kz.seruendesh.frontend
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Seruendesh
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.travel
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_EMIT_LOC_STRINGS: YES
+  SeruendeshAITests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests
+    dependencies:
+      - target: SeruendeshAI
+  SeruendeshAIUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - UITests
+    settings:
+      base:
+        TEST_TARGET_NAME: SeruendeshAI
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: SeruendeshAI
+schemes:
+  SeruendeshAI:
+    build:
+      targets:
+        SeruendeshAI: all
+    test:
+      targets:
+        - SeruendeshAITests
+        - SeruendeshAIUITests
+    run:
+      config: Debug

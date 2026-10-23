@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "fps": 24,
+  "frameCount": 120,
+  "width": 384,
+  "height": 384,
+  "format": "APNG",
+  "posterFrame": 0,
+  "loop": true
+}
