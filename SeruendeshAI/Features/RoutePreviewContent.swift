@@ -36,6 +36,10 @@ struct RoutePreviewContent: View {
         MapLinks.orderedWalk(origin: origin, originCoordinate: originCoordinate, places: stops,
                              returnsToStart: route?.returnsToStart == true)
     }
+    private var hasRouteNotes: Bool {
+        route != nil || (!place.isLive && estimatedMeters != nil) ||
+            (livePreview.map { $0.geometry != "network" } ?? false)
+    }
     private var shareText: String {
         if let route { return MapLinks.shareRoute(route, places: stops) }
         var single = WalkRoute(id: place.id, name: "Пеший маршрут", subtitle: "", duration: minutes ?? 0,
@@ -48,9 +52,18 @@ struct RoutePreviewContent: View {
         VStack(alignment: .leading, spacing: 20) {
             overview
             waypoints
+            if hasRouteNotes {
+                DisclosureGroup {
+                    routeNotes.padding(.top, 8)
+                } label: {
+                    Label("О маршруте и времени", systemImage: "info.circle")
+                        .font(.subheadline).frame(minHeight: 44)
+                }
+                .foregroundStyle(SeruColor.muted)
+            }
             actions
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 24)
         .task(id: place.id) {
@@ -83,12 +96,35 @@ struct RoutePreviewContent: View {
                     .font(.subheadline)
                     .foregroundStyle(SeruColor.muted)
             }
+            if route?.fitsBudget == false {
+                Label("Дольше выбранного времени", systemImage: "exclamationmark.circle")
+                    .font(.footnote.weight(.medium)).foregroundStyle(SeruColor.muted)
+            } else if let route, route.returnsToStart == false, let back = route.returnMinutes,
+                      route.duration + back > app.duration {
+                Label("С возвратом — \(route.duration + back) мин", systemImage: "arrow.uturn.backward")
+                    .font(.footnote).foregroundStyle(SeruColor.muted)
+            }
+            if (!place.isLive && route == nil && estimatedMeters != nil) ||
+                route?.legs.contains(where: { $0.geometry != "network" }) == true ||
+                (livePreview.map { $0.geometry != "network" } ?? false) {
+                Text("Пунктир — примерное направление")
+                    .font(.caption).foregroundStyle(SeruColor.muted)
+            }
+        }
+        .foregroundStyle(SeruColor.ink)
+    }
+
+    private var routeNotes: some View {
+        VStack(alignment: .leading, spacing: 10) {
             if let route {
                 if route.returnsToStart == true {
                     Label("С возвратом к старту", systemImage: "arrow.uturn.backward")
                         .font(.footnote)
                 } else if let back = route.returnMinutes, route.returnsToStart == false {
                     Text("Обратно к старту — ещё примерно \(back) мин.")
+                        .font(.footnote)
+                } else if route.returnsToStart == false {
+                    Text("Финиш — последняя остановка. Обратный путь не рассчитан.")
                         .font(.footnote)
                 } else if route.returnsToStart == nil {
                     Text("Возврат к старту не указан.").font(.footnote)
@@ -99,13 +135,14 @@ struct RoutePreviewContent: View {
                 }
             }
             if (!place.isLive && route == nil && estimatedMeters != nil) ||
-                route?.legs.contains(where: { $0.geometry != "network" }) == true {
-                Text("Пунктир на карте — примерный путь. Время оценено с запасом по расстоянию. Проверь проходы в Картах.")
+                route?.legs.contains(where: { $0.geometry != "network" }) == true ||
+                (livePreview.map { $0.geometry != "network" } ?? false) {
+                Text("Пунктир — примерное направление. Время оценено по расстоянию. Проверь проходы и пешеходный путь в Картах.")
                     .font(.footnote)
                     .foregroundStyle(SeruColor.muted)
             }
         }
-        .foregroundStyle(SeruColor.ink)
+        .foregroundStyle(SeruColor.muted)
     }
 
     @ViewBuilder private var liveRouteStatus: some View {
@@ -125,13 +162,8 @@ struct RoutePreviewContent: View {
                     Task { await app.loadRoutePreview(for: place) }
                 }
             }
-        } else if let preview = livePreview {
+        } else if livePreview != nil {
             routeMetrics
-            if preview.geometry != "network" {
-                Text("Путь оценён примерно. Проверь пешеходный маршрут в Картах.")
-                    .font(.footnote)
-                    .foregroundStyle(SeruColor.muted)
-            }
         } else { routeLoading }
     }
 
@@ -145,7 +177,7 @@ struct RoutePreviewContent: View {
     }
 
     private var routeMetrics: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .firstTextBaseline, spacing: 12) { metricItems }
                 VStack(alignment: .leading, spacing: 8) { metricItems }
@@ -159,27 +191,35 @@ struct RoutePreviewContent: View {
     @ViewBuilder private var metricItems: some View {
         if let minutes {
             Text("\(minutes) мин")
-                .font(.title.weight(.bold))
+                .font(.title2.weight(.bold))
                 .foregroundStyle(SeruColor.ink)
         }
         if !distance.isEmpty { Text(distance).font(.title3).foregroundStyle(SeruColor.muted) }
     }
 
     private var waypoints: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 0) {
             Label("Старт: \(origin.isEmpty ? "не задан" : origin)", systemImage: "flag.fill")
                 .font(.subheadline.weight(.medium))
+                .padding(.bottom, 16)
             ForEach(Array(stops.enumerated()), id: \.element.id) { index, stop in
                 Button { app.showPlace(stop) } label: {
                     HStack(alignment: .top, spacing: 12) {
                         Text("\(index + 1)")
                             .font(.caption.weight(.semibold))
-                            .frame(width: 26, height: 26)
-                            .background(SeruColor.surface, in: .circle)
-                        Text(stop.name)
-                            .font(.subheadline)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .multilineTextAlignment(.leading)
+                            .foregroundStyle(SeruColor.onAction)
+                            .frame(width: 28, height: 28)
+                            .background(SeruColor.action, in: .circle)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(stop.name)
+                                .font(.subheadline.weight(.medium))
+                                .fixedSize(horizontal: false, vertical: true)
+                                .multilineTextAlignment(.leading)
+                            if let leg = route?.legs.first(where: { $0.toID == stop.id }) {
+                                Label("\(leg.travelMinutes) мин · \(walkDistanceLabel(leg.distanceMeters))", systemImage: "figure.walk")
+                                    .font(.caption).foregroundStyle(SeruColor.muted)
+                            }
+                        }
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right").font(.caption)
                     }
@@ -188,6 +228,11 @@ struct RoutePreviewContent: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Остановка \(index + 1). \(stop.name)")
                 .accessibilityHint("Открыть информацию о месте")
+                .padding(.vertical, 6)
+                if index < stops.count - 1 {
+                    Rectangle().fill(SeruColor.line).frame(width: 1, height: 20)
+                        .padding(.leading, 14).accessibilityHidden(true)
+                }
             }
             if route?.returnsToStart == true {
                 Label("Возврат: \(origin)", systemImage: "flag.checkered")
@@ -195,9 +240,7 @@ struct RoutePreviewContent: View {
             }
         }
         .foregroundStyle(SeruColor.ink)
-        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(SeruColor.field, in: .rect(cornerRadius: 12))
     }
 
     private var actions: some View {

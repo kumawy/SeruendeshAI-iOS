@@ -138,11 +138,7 @@ struct AppBrandHeader: View {
     var body: some View {
         HStack(spacing: 8) {
             Spacer(minLength: 4)
-            Button(action: onProfile) {
-                AvatarPlaceholder(size: 30).frame(width: 44, height: 44)
-            }
-            .buttonStyle(.glass).buttonBorderShape(.circle)
-            .accessibilityLabel("Профиль и настройки")
+            ProfileButton(action: onProfile)
         }
         .padding(.horizontal, 20).frame(height: 58)
         .background {
@@ -158,10 +154,31 @@ struct AppBrandHeader: View {
     }
 }
 
+struct ProfileButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "person")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(SeruColor.action)
+                .frame(width: 44, height: 44)
+                .background(SeruColor.surface, in: .rect(cornerRadius: 14))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(SeruColor.line, lineWidth: 1)
+                }
+                .contentShape(.rect(cornerRadius: 14))
+        }
+        .buttonStyle(SeruPressStyle())
+        .accessibilityLabel("Профиль и настройки")
+    }
+}
+
 struct AvatarPlaceholder: View {
     var size: CGFloat = 32
     var body: some View {
-        Image(systemName: "person.crop.circle")
+        Image(systemName: "person")
             .font(.system(size: size, weight: .regular))
             .foregroundStyle(SeruColor.muted)
             .accessibilityHidden(true)
@@ -186,7 +203,7 @@ struct SavePlaceButton: View {
     }
 }
 
-private struct SeruPressStyle: ButtonStyle {
+struct SeruPressStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

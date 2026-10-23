@@ -7,6 +7,7 @@ struct LiveMapView: View {
     let screen: WalkScreen
     let visibleHeight: CGFloat
     var showsContent = true
+    var isEmbedded = false
     var onBackgroundTap: () -> Void = {}
 
     @Environment(AppModel.self) private var app
@@ -15,7 +16,6 @@ struct LiveMapView: View {
         MapCamera(centerCoordinate: Self.defaultCenter, distance: 8_000)
     )
     @State private var currentCamera: MapCamera?
-    @State private var selectedPlaceID: String?
     @State private var lastFitTarget: LiveMapFitTarget?
 
     private static let defaultCenter = CLLocationCoordinate2D(latitude: 51.128, longitude: 71.430)
@@ -25,25 +25,53 @@ struct LiveMapView: View {
             let presentation = mapPresentation
             MapReader { proxy in
                 ZStack(alignment: .topTrailing) {
-                    Map(position: $position, interactionModes: [.pan, .zoom, .rotate],
-                        selection: $selectedPlaceID, scope: mapScope) {
+                    Map(position: $position, interactionModes: isEmbedded ? [] : [.pan, .zoom, .rotate],
+                        scope: mapScope) {
                         ForEach(presentation.lines) { line in
+                            // A casing keeps the line legible over streets and park
+                            // artwork. Estimates remain visibly dashed in both layers.
                             MapPolyline(coordinates: line.points.map(mapCoordinate))
-                                .stroke(SeruColor.action, style: StrokeStyle(
-                                    lineWidth: 5, lineCap: .round, lineJoin: .round,
-                                    dash: line.isEstimated ? [8, 6] : []
+                                .stroke(.white.opacity(0.9), style: StrokeStyle(
+                                    lineWidth: 8, lineCap: .round, lineJoin: .round,
+                                    dash: line.isEstimated ? [8, 10] : []
+                                ))
+                            MapPolyline(coordinates: line.points.map(mapCoordinate))
+                                .stroke(Color(hex: "27634F"), style: StrokeStyle(
+                                    lineWidth: 4, lineCap: .round, lineJoin: .round,
+                                    dash: line.isEstimated ? [8, 10] : []
                                 ))
                         }
                         ForEach(presentation.places) { place in
                             if let point = place.coordinate {
-                                Marker(markerTitle(place, presentation: presentation), systemImage: place.symbol, coordinate: mapCoordinate(point))
-                                    .tint(SeruColor.action)
-                                    .tag(place.id)
+                                Annotation(place.name, coordinate: mapCoordinate(point), anchor: .center) {
+                                    Button { app.showPlace(place) } label: {
+                                        MapPlaceBadge(
+                                            number: presentation.stopNumber(for: place.id),
+                                            symbol: place.symbol,
+                                            isStart: point == presentation.origin
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel(markerTitle(place, presentation: presentation))
+                                    .accessibilityHint("Открыть место")
+                                    .accessibilityIdentifier("map-place-\(place.id)")
+                                }
+                                .annotationTitles(.hidden)
                             }
                         }
                         if let origin = presentation.origin, !presentation.places.contains(where: { $0.coordinate == origin }) {
-                            Marker("Старт: \(presentation.originLabel)", systemImage: "flag.fill", coordinate: mapCoordinate(origin))
-                                .tint(.gray)
+                            Annotation("Старт: \(presentation.originLabel)", coordinate: mapCoordinate(origin), anchor: .center) {
+                                Image(systemName: "flag.fill")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(Color(hex: "174B3E"))
+                                    .frame(width: 32, height: 32)
+                                    .background(.white, in: .circle)
+                                    .overlay { Circle().strokeBorder(Color(hex: "174B3E"), lineWidth: 2) }
+                                    .shadow(color: .black.opacity(0.16), radius: 3, x: 0, y: 2)
+                                    .frame(width: 44, height: 44)
+                                    .accessibilityLabel("Старт: \(presentation.originLabel)")
+                            }
+                            .annotationTitles(.hidden)
                         }
                     }
                     .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
@@ -52,15 +80,21 @@ struct LiveMapView: View {
                     .simultaneousGesture(SpatialTapGesture(count: 2).exclusively(before: SpatialTapGesture()).onEnded { gesture in
                         // A gesture on the map preserves native panning and zooming.
                         // Native double-tap zoom and marker taps never collapse it.
-                        guard case .second(let tap) = gesture else { return }
+                        guard !isEmbedded, case .second(let tap) = gesture else { return }
                         if !isAnnotationTap(tap.location, presentation: presentation, proxy: proxy) {
                             onBackgroundTap()
                         }
                     })
                     .accessibilityIdentifier("map-background")
-                    .accessibilityAction(named: Text("Свернуть панель"), onBackgroundTap)
+                    .accessibilityActions {
+                        if !isEmbedded {
+                            Button("Свернуть панель", action: onBackgroundTap)
+                        }
+                    }
 
-                    controls(size: geometry.size, target: presentation.fitTarget)
+                    if !isEmbedded {
+                        controls(size: geometry.size, target: presentation.fitTarget)
+                    }
                 }
             }
             .onChange(of: presentation.fitTarget, initial: true) { _, target in
@@ -77,17 +111,15 @@ struct LiveMapView: View {
             .onChange(of: screen) { _, _ in
                 fitIfNeeded(presentation.fitTarget, size: geometry.size)
             }
+            .onChange(of: isEmbedded) { _, _ in
+                lastFitTarget = nil
+                fitIfNeeded(presentation.fitTarget, size: geometry.size)
+            }
         }
         // Keep the actual map and its camera mounted behind the chat panel.
         .opacity(showsContent ? 1 : 0)
         .allowsHitTesting(showsContent)
         .accessibilityHidden(!showsContent)
-        .onChange(of: selectedPlaceID) { _, id in
-            guard let id else { return }
-            selectedPlaceID = nil
-            let place = app.place(id: id)
-            if place.id == id { app.showPlace(place) }
-        }
     }
 
     private var mapPresentation: LiveMapPresentation {
@@ -104,9 +136,9 @@ struct LiveMapView: View {
         }
         var places = routePlaces ?? app.places
         if case .detail(let id) = screen {
-            appendPlace(id: id, to: &places)
+            places = actualPlaces(ids: [id])
         } else if case .route(let id) = screen, route == nil {
-            appendPlace(id: id, to: &places)
+            places = actualPlaces(ids: [id])
         }
         var seenIDs = Set<String>()
         places = places.filter { place in
@@ -147,15 +179,21 @@ struct LiveMapView: View {
             fitPoints = lines.flatMap(\.points) + places.compactMap(\.coordinate)
             if let origin { fitPoints.append(origin) }
         }
+        let numberedStops: [String]
+        if let route { numberedStops = route.placeIDs }
+        else if case .route(let id) = screen { numberedStops = [id] }
+        else { numberedStops = [] }
+
         return LiveMapPresentation(places: places, origin: origin,
                                    originLabel: route?.originLabel ?? preview?.originLabel ?? app.origin,
-                                   numberedStops: route?.placeIDs ?? [], lines: lines,
+                                   numberedStops: numberedStops, lines: lines,
                                    fitTarget: LiveMapFitTarget(focus: focus, points: fitPoints))
     }
 
     private func markerTitle(_ place: Place, presentation: LiveMapPresentation) -> String {
-        if let index = presentation.numberedStops.firstIndex(of: place.id) { return "\(index + 1). \(place.name)" }
-        return place.name
+        let title = if let number = presentation.stopNumber(for: place.id) { "Остановка \(number). \(place.name)" }
+        else { place.name }
+        return place.coordinate == presentation.origin ? "Старт. \(title)" : title
     }
 
     private func actualPlaces(ids: [String]) -> [Place] {
@@ -163,12 +201,6 @@ struct LiveMapView: View {
             let place = app.place(id: id)
             return place.id == id ? place : nil
         }
-    }
-
-    private func appendPlace(id: String, to places: inout [Place]) {
-        guard !places.contains(where: { $0.id == id }) else { return }
-        let place = app.place(id: id)
-        if place.id == id { places.append(place) }
     }
 
     private func controls(size: CGSize, target: LiveMapFitTarget) -> some View {
@@ -202,7 +234,7 @@ struct LiveMapView: View {
     private func mapButton(symbol: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.body.weight(.medium))
+                .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(.primary)
                 .frame(width: 44, height: 44)
         }
@@ -233,12 +265,17 @@ struct LiveMapView: View {
         let minY = mapPoints.map(\.y).min() ?? fallback.y
         let maxY = mapPoints.map(\.y).max() ?? fallback.y
         let latitude = points.first?.latitude ?? Self.defaultCenter.latitude
-        let minimumSpan = MKMapPointsPerMeterAtLatitude(latitude) * (points.isEmpty ? 3_000 : 650)
+        let minimumMeters: Double
+        switch screen {
+        case .plan, .route: minimumMeters = points.isEmpty ? 3_000 : 220
+        default: minimumMeters = points.isEmpty ? 3_000 : 650
+        }
+        let minimumSpan = MKMapPointsPerMeterAtLatitude(latitude) * minimumMeters
         let boundsWidth = max(maxX - minX, minimumSpan) * 1.25
         let boundsHeight = max(maxY - minY, minimumSpan) * 1.25
         let visible = min(max(visibleHeight, 1), size.height)
-        let top = min(104, max(24, visible * 0.25))
-        let bottom = min(44, visible * 0.15)
+        let top = isEmbedded ? min(24, visible * 0.15) : min(104, max(24, visible * 0.25))
+        let bottom = isEmbedded ? min(24, visible * 0.15) : min(44, visible * 0.15)
         let viewportWidth = max(size.width - 48, 1)
         let viewportHeight = max(visible - top - bottom, 60)
         let mapPointsPerPixel = max(boundsWidth / viewportWidth, boundsHeight / viewportHeight)
@@ -256,8 +293,8 @@ struct LiveMapView: View {
         let coordinates = presentation.places.compactMap(\.coordinate) + (presentation.origin.map { [$0] } ?? [])
         return coordinates.contains { coordinate in
             guard let point = proxy.convert(mapCoordinate(coordinate), to: .local) else { return false }
-            // Includes the native marker's title and pin above its map anchor.
-            return CGRect(x: point.x - 96, y: point.y - 84, width: 192, height: 112).contains(location)
+            // Compact annotations use a full44pt hit area without place-title bubbles.
+            return CGRect(x: point.x - 28, y: point.y - 28, width: 56, height: 56).contains(location)
         }
     }
 }
@@ -269,6 +306,50 @@ private struct LiveMapPresentation {
     let numberedStops: [String]
     let lines: [LiveMapLine]
     let fitTarget: LiveMapFitTarget
+
+    func stopNumber(for placeID: String) -> Int? {
+        numberedStops.firstIndex(of: placeID).map { $0 + 1 }
+    }
+}
+
+/// A compact visual pin inside a full44pt touch target.
+private struct MapPlaceBadge: View {
+    let number: Int?
+    let symbol: String
+    let isStart: Bool
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            Group {
+                if let number {
+                    Text(number, format: .number)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                } else {
+                    Image(systemName: symbol)
+                        .font(.system(size: 14, weight: .semibold))
+                }
+            }
+            .foregroundStyle(.white)
+            .frame(width: 32, height: 32)
+            .background(Color(hex: "174B3E"), in: .circle)
+            .overlay { Circle().strokeBorder(.white, lineWidth: 2) }
+            .shadow(color: .black.opacity(0.18), radius: 3, x: 0, y: 2)
+
+            // A start that is also a stop retains its sequence number.
+            if isStart {
+                Image(systemName: "flag.fill")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(Color(hex: "174B3E"))
+                    .frame(width: 16, height: 16)
+                    .background(.white, in: .circle)
+                    .offset(x: 4, y: 3)
+            }
+        }
+        .frame(width: 44, height: 44)
+        .contentShape(.rect)
+        .accessibilityHidden(true)
+    }
 }
 
 private struct LiveMapLine: Identifiable {

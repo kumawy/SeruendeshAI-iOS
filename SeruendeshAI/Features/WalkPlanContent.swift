@@ -5,19 +5,37 @@ struct WalkPlanContent: View {
     @Environment(AppModel.self) private var app
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var audioGuide = ItineraryAudioGuide()
     @State private var showingEditor = false
 
     private var route: WalkRoute? { app.currentPlan }
+    private var stopsHeading: AnyLayout {
+        typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+            : AnyLayout(HStackLayout(spacing: 8))
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 24) {
             if let route {
                 header(route)
+                mapPreview(route)
+                stopsHeading {
+                    Text("Остановки").font(.title3.weight(.semibold)).foregroundStyle(SeruColor.ink)
+                    if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
+                    Button { showingEditor = true } label: {
+                        Label("Изменить", systemImage: "slider.horizontal.3")
+                            .font(.subheadline.weight(.medium)).frame(minHeight: 44)
+                    }
+                    .accessibilityIdentifier("plan-edit-stops")
+                }
+                .padding(.bottom, -16)
                 timeline(route)
                     .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: route.placeIDs)
-                audioWidget(route)
+                routeNotes(route)
                 actions(route)
+                audioWidget(route)
             } else if app.isLoadingPlan {
                 VStack(spacing: 12) {
                     WalkStateMascot(scene: .routing, isActive: mascotActive)
@@ -29,7 +47,7 @@ struct WalkPlanContent: View {
                 planUnavailable
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 24)
         .task {
@@ -91,7 +109,7 @@ struct WalkPlanContent: View {
     }
 
     private func header(_ route: WalkRoute) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 8) {
                 Text(route.name)
                     .font(.title.weight(.bold))
@@ -101,8 +119,8 @@ struct WalkPlanContent: View {
                 Spacer(minLength: 0)
                 ShareLink(item: MapLinks.shareRoute(route, places: route.placeIDs.map { app.place(id: $0) })) {
                     Image(systemName: "square.and.arrow.up")
-                        .font(.body)
-                        .foregroundStyle(SeruColor.ink)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(SeruColor.action)
                         .frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("Поделиться планом прогулки")
@@ -112,20 +130,63 @@ struct WalkPlanContent: View {
                 VStack(alignment: .leading, spacing: 8) { planMetrics(route) }
             }
             .font(.subheadline)
-            .foregroundStyle(SeruColor.muted)
-            returnInfo(route)
-            if route.legs.contains(where: { $0.geometry != "network" }) {
-                Text("Время и пунктир на карте — примерная оценка. Проверь пешеходный путь в Картах.")
-                    .font(.footnote)
-                    .foregroundStyle(SeruColor.muted)
+            .foregroundStyle(SeruColor.ink)
+            Text("Время с остановками · пешком")
+                .font(.caption).foregroundStyle(SeruColor.muted)
+            if route.fitsBudget == false || route.duration > app.duration {
+                Label("План дольше выбранных \(durationLabel(app.duration))", systemImage: "exclamationmark.circle")
+                    .font(.footnote.weight(.medium)).foregroundStyle(SeruColor.muted)
+            } else if route.returnsToStart == false, let back = route.returnMinutes,
+                      route.duration + back > app.duration {
+                Label("С возвратом — \(durationLabel(route.duration + back)), дольше выбранного времени", systemImage: "arrow.uturn.backward")
+                    .font(.footnote).foregroundStyle(SeruColor.muted)
             }
-            Button { showingEditor = true } label: {
-                Label("Изменить остановки", systemImage: "slider.horizontal.3")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(minHeight: 44)
-            }
-            .accessibilityIdentifier("plan-edit-stops")
         }
+    }
+
+    private func mapPreview(_ route: WalkRoute) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            LiveMapView(screen: .plan, visibleHeight: 190, isEmbedded: true)
+                .frame(height: 190)
+                .clipShape(.rect(cornerRadius: 16))
+                .accessibilityIdentifier("plan-map-preview")
+                .overlay(alignment: .topTrailing) {
+                    Button { app.showFullRoute(route) } label: {
+                        Label("На карте", systemImage: "arrow.up.left.and.arrow.down.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(SeruColor.ink)
+                            .padding(.horizontal, 12).frame(minHeight: 44)
+                            .background(SeruColor.surface, in: .capsule)
+                    }
+                    .buttonStyle(SeruPressStyle())
+                    .accessibilityLabel("Посмотреть маршрут на карте")
+                    .accessibilityIdentifier("plan-route")
+                    .padding(10)
+                }
+            if route.legs.contains(where: { $0.geometry != "network" }) {
+                Text("Пунктир — примерный путь")
+                    .font(.caption2).foregroundStyle(SeruColor.muted)
+            }
+        }
+    }
+
+    private func routeNotes(_ route: WalkRoute) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            DisclosureGroup {
+                VStack(alignment: .leading, spacing: 10) {
+                    returnInfo(route)
+                    if route.legs.contains(where: { $0.geometry != "network" }) {
+                        Text("Пунктир — примерное направление. Время оценено по расстоянию. Проверь проходы и пешеходный путь в Картах.")
+                            .font(.footnote).foregroundStyle(SeruColor.muted)
+                    }
+                }.padding(.top, 8)
+            } label: {
+                Label("О времени и пути", systemImage: "info.circle")
+                    .font(.subheadline).frame(minHeight: 44)
+            }
+            .accessibilityIdentifier("plan-route-notes")
+        }
+        .foregroundStyle(SeruColor.muted)
     }
 
     @ViewBuilder private func planMetrics(_ route: WalkRoute) -> some View {
@@ -168,14 +229,11 @@ struct WalkPlanContent: View {
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(SeruColor.ink)
             if let initial = route.legs.first, initial.fromID == "start" {
-                Text("\(initial.travelMinutes) мин · \(walkDistanceLabel(initial.distanceMeters))")
-                    .font(.caption)
-                    .foregroundStyle(SeruColor.muted)
-                    .padding(.top, 6)
+                WalkTimelineTransfer(minutes: initial.travelMinutes, distance: walkDistanceLabel(initial.distanceMeters))
             }
             ForEach(stops(route)) { stop in
                 WalkPlanTimelineRow(stop: stop, transfer: transfer(after: stop, route: route), action: { app.showPlace(stop.place) })
-                    .padding(.top, stop.number == 1 ? 16 : 0)
+                    .padding(.top, stop.number == 1 ? 4 : 0)
             }
             if route.returnsToStart == true {
                 Label("Возврат: \(route.originLabel ?? app.origin)", systemImage: "flag.checkered")
@@ -204,7 +262,7 @@ struct WalkPlanContent: View {
             .foregroundStyle(SeruColor.ink)
             .padding(.horizontal, 16)
             .frame(minHeight: 52)
-            .background(SeruColor.field, in: .rect(cornerRadius: 12))
+            .background(SeruColor.field, in: .rect(cornerRadius: 14))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(audioGuide.isPlaying ? "Остановить аудиогид" : "Включить аудиогид")
@@ -213,21 +271,11 @@ struct WalkPlanContent: View {
 
     private func actions(_ route: WalkRoute) -> some View {
         VStack(spacing: 10) {
-            PrimaryAction(title: "Посмотреть маршрут", symbol: "map") { app.showFullRoute(route) }
-                .accessibilityIdentifier("plan-route")
             if let url = MapLinks.orderedWalk(origin: route.originLabel ?? app.origin, originCoordinate: route.originCoordinate,
                     places: route.placeIDs.map { app.place(id: $0) }, returnsToStart: route.returnsToStart == true) {
-                Button {
+                PrimaryAction(title: "Открыть в Apple Maps", symbol: "arrow.up.right") {
                     openURL(url) { accepted in if !accepted { app.toast = "Не удалось открыть карту" } }
-                } label: {
-                    Label("Весь маршрут в Apple Maps", systemImage: "arrow.up.right")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(SeruColor.ink)
-                        .frame(maxWidth: .infinity, minHeight: 48)
-                        .padding(.horizontal, 12)
-                        .background(SeruColor.field, in: .rect(cornerRadius: 12))
                 }
-                .buttonStyle(.plain)
                 .accessibilityIdentifier("plan-open-full-route")
             }
         }
@@ -324,23 +372,26 @@ private struct WalkPlanTimelineRow: View {
 }
 
 private struct WalkTimelineStop: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let stop: WalkPlanStop
     let action: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
             Text("\(stop.number)")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(SeruColor.ink)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(SeruColor.onAction)
                 .frame(width: 30, height: 30)
-                .background(SeruColor.field, in: .circle)
+                .background(SeruColor.action, in: .circle)
                 .accessibilityHidden(true)
             Button(action: action) {
                 HStack(spacing: 12) {
-                    PlaceArtwork(place: stop.place, bundledAsset: stop.asset)
-                        .frame(width: 58, height: 58)
-                        .clipShape(.rect(cornerRadius: 10))
-                        .accessibilityHidden(true)
+                    if !typeSize.isAccessibilitySize {
+                        PlaceArtwork(place: stop.place, bundledAsset: stop.asset)
+                            .frame(width: 64, height: 72)
+                            .clipShape(.rect(cornerRadius: 10))
+                            .accessibilityHidden(true)
+                    }
                     VStack(alignment: .leading, spacing: 5) {
                         Text(stop.title)
                             .font(.subheadline.weight(.semibold))
@@ -351,12 +402,15 @@ private struct WalkTimelineStop: View {
                             .foregroundStyle(SeruColor.muted)
                     }
                     Spacer(minLength: 0)
+                    Image(systemName: "chevron.right").font(.caption.weight(.medium))
+                        .foregroundStyle(SeruColor.muted)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
             .accessibilityElement(children: .ignore)
+            .accessibilityAddTraits(.isButton)
             .accessibilityLabel("Остановка \(stop.number). \(stop.title). \(stop.detail)")
             .accessibilityHint("Открыть информацию о месте")
             .accessibilityIdentifier("plan-stop-\(stop.id)")
@@ -377,7 +431,7 @@ private struct WalkTimelineTransfer: View {
         HStack(spacing: 14) {
             Rectangle()
                 .fill(SeruColor.line)
-                .frame(width: 1, height: 26)
+                .frame(width: 1, height: 32)
                 .frame(width: 30)
                 .accessibilityHidden(true)
             Label(label, systemImage: "figure.walk")

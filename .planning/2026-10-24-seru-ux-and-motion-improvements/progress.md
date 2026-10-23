@@ -25,3 +25,11 @@
 ## Splash pacing follow-up
 - User found0.52s too abrupt. Normal greeting now0.75s plus0.25s fade (1.0s total). Reduced Motion stays0.14s; no other launch behavior changed.
 - Updated lower/upper pacing regression: old0.52s observed RED; all13 splash core tests GREEN. Two targeted iOS launch/ReduceMotion UI tests PASS; build and whitespace check pass. Read-only independent review found no timing coupling issues.
+
+## Visual follow-up from screenshots
+- Replaced event calendar actions with branded provider links/badges. Official city listings are used for local examples; supplied real event URLs retain their destination. Five source-resolution regressions added.
+- Rebuilt Profile, shared profile buttons and compact chat toolbar. Plan is now an opaque full-page itinerary with inline map; map stops use numbers and a distinct start.
+- First integration:169 SwiftPackage tests /16 suites and185 iOS unit tests /19 suites passed. UI verification exposed inherited accessibility IDs in the theme selector and outdated smoke-test expectations; fixed. Added larger-text handling for map controls, initials and stop rows.
+- Final verification PASS:169 SwiftPackage tests /16 suites,185 iOS unit tests /19 suites,11 distinct UI journeys across `.build/visual-followup-2.xcresult` and `.build/visual-followup-3.xcresult`. Final map refinement additionally passed all3 route UI cases in `.build/visual-map-final.xcresult`; latest app build passed (`.build/visual-final-build.log`).
+- Visual QA in light/dark and accessibility XXXL found and fixed short-route pin overlap and a legend covering the native map attribution. Final map screenshots are in `.build/visual-map-final-captures`; independent review found no remaining actionable issues in scope.
+- Latest app installed and launched on the main iPhone17Pro simulator; temporary profile-test name removed. Existing private pet_project/main remains the only remote/branch; baseline recovery tag unchanged.

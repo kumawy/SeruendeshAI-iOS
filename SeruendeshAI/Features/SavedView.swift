@@ -81,14 +81,7 @@ struct SavedView: View {
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("saved-title")
 
-            Button { accountOpen = true } label: {
-                    Image(systemName: "person.crop.circle")
-                        .font(.system(size: 22, weight: .regular))
-                        .frame(width: 44, height: 44)
-                        .background(SeruColor.field, in: .circle)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Профиль и настройки")
+            ProfileButton { accountOpen = true }
                 .accessibilityIdentifier(app.account.user == nil ? "saved-sign-in" : "saved-account")
         }
     }

@@ -106,17 +106,21 @@ struct ChatScreen: View {
             chatHeader
             Button { onSettings?(.filters) } label: {
                 HStack(alignment: .center, spacing: 8) {
+                    Image(systemName: "mappin.and.ellipse").font(.caption)
                     Text(conditions).font(.caption).multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                     Image(systemName: "slider.horizontal.3").font(.system(size: 14))
                 }
+                .padding(.horizontal, 12)
                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .background(SeruColor.field, in: .rect(cornerRadius: 12))
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .foregroundStyle(SeruColor.muted)
             .padding(.horizontal, 16)
+            .padding(.bottom, 8)
             .accessibilityLabel("Условия прогулки: \(conditions)")
             .accessibilityIdentifier("chat-current-conditions")
 
@@ -233,33 +237,26 @@ struct ChatScreen: View {
     }
 
     private var chatHeader: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             Button { showsJournal = true } label: {
                 if typeSize.isAccessibilitySize {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.system(size: 18)).frame(width: 44, height: 44)
                 } else {
                     SeruMenuLabel(title: "Журнал", symbol: "clock.arrow.circlepath")
-                        .font(.subheadline).frame(minHeight: 44)
+                        .font(.subheadline.weight(.medium)).frame(minHeight: 44)
                 }
             }
             .accessibilityLabel("Журнал прогулок").accessibilityIdentifier("chat-journal")
             Spacer(minLength: 0)
             if app.currentPlan != nil {
                 Button { app.showPlan() } label: {
-                    Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
-                        .font(.system(size: 18)).frame(width: 44, height: 44)
+                    Label("План", systemImage: "map")
+                        .font(.subheadline.weight(.medium)).frame(minWidth: 44, minHeight: 44)
+                        .labelStyle(.titleAndIcon)
                 }
                 .accessibilityLabel("План прогулки").accessibilityIdentifier("open-current-plan")
             }
-            Button {
-                attachmentLoader.clear()
-                scrollState.reset(for: nil)
-                app.startNewWalk()
-            } label: {
-                Image(systemName: "square.and.pencil").font(.system(size: 18)).frame(width: 44, height: 44)
-            }
-            .accessibilityLabel("Новая прогулка").accessibilityIdentifier("chat-new-walk")
             chatOptions
         }
         .buttonStyle(.plain).foregroundStyle(SeruColor.action).padding(.horizontal, 16)
@@ -267,19 +264,24 @@ struct ChatScreen: View {
 
     private var chatOptions: some View {
         Menu {
+            Button {
+                attachmentLoader.clear()
+                scrollState.reset(for: nil)
+                app.startNewWalk()
+            } label: { SeruMenuLabel(title: "Новая прогулка", symbol: "square.and.pencil") }
+                .accessibilityIdentifier("chat-new-walk")
             Button { app.showResults() } label: { SeruMenuLabel(title: "Места рядом", symbol: "map") }
                 .accessibilityIdentifier("chat-nearby")
             Button { app.showPlan() } label: {
                 SeruMenuLabel(title: "План прогулки", symbol: "point.topleft.down.to.point.bottomright.curvepath")
             }
             .accessibilityIdentifier("open-plan")
-            Button(action: onProfile) { SeruMenuLabel(title: "Профиль", symbol: "person.crop.circle") }
+            Button(action: onProfile) { SeruMenuLabel(title: "Профиль", symbol: "person") }
                 .accessibilityIdentifier("chat-profile")
         } label: {
             Image(systemName: "ellipsis").font(.system(size: 18, weight: .medium)).frame(width: 44, height: 44)
-                .background(SeruColor.field, in: Circle())
         }
-        .buttonStyle(.plain).accessibilityLabel("Места и план прогулки").accessibilityIdentifier("chat-options")
+        .buttonStyle(.plain).accessibilityLabel("Действия прогулки").accessibilityIdentifier("chat-options")
     }
 
     private func messageBubble(_ message: ChatMessage) -> some View {

@@ -59,7 +59,7 @@ final class UXRefinementUITests: XCTestCase {
         XCTAssertFalse(app.navigationBars["Профиль"].exists)
     }
 
-    func testEventsProfileDatesCancelAndNoSaveAction() throws {
+    func testEventsProfileDatesAndProviderLinkWithoutSaveOrCalendar() throws {
         let app = makeApp()
         app.launch()
         defer { app.terminate() }
@@ -77,16 +77,15 @@ final class UXRefinementUITests: XCTestCase {
         XCTAssertFalse(app.buttons["event-save-jazz"].exists)
         XCTAssertTrue(app.buttons["event-venue-map"].exists)
         capture("event-improved-detail", app)
-        let add = app.buttons["event-add-calendar"]
+        XCTAssertFalse(app.buttons["event-add-calendar"].exists)
+        let provider = app.descendants(matching: .any)["event-provider-link-jazz"].firstMatch
         for _ in 0..<4 {
-            if add.exists && add.isHittable { break }
+            if provider.exists && provider.isHittable { break }
             app.scrollViews.firstMatch.swipeUp()
         }
-        try tap(add)
-        XCTAssertTrue(app.descendants(matching: .any)["event-calendar-editor"].firstMatch.waitForExistence(timeout: 8))
-        capture("event-calendar-review", app)
-        try tap(app.buttons.matching(NSPredicate(format: "label IN {'Cancel', 'Отменить', 'Отмена'}")).firstMatch)
-        XCTAssertTrue(app.navigationBars["Событие"].waitForExistence(timeout: 5))
+        XCTAssertTrue(provider.exists && provider.isHittable)
+        XCTAssertTrue(provider.label.contains("Sxodim"))
+        capture("event-provider-action", app)
     }
 
     func testPlanStopEditorCanRemoveTheOnlyStop() throws {

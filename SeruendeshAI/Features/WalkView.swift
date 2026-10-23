@@ -28,6 +28,39 @@ struct WalkView: View {
     }
 
     var body: some View {
+        Group {
+            if app.screen == .plan {
+                VStack(spacing: 0) {
+                    panelBack.padding(.top, 4)
+                    scrollingContent(for: .plan)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(SeruColor.surface.ignoresSafeArea())
+            } else {
+                mapAndPanel
+            }
+        }
+        .sheet(item: $settings) { kind in WalkSettingsView(kind: kind) }
+        .sheet(item: $utilitySheet) { kind in
+            switch kind {
+            case .journal: JournalView()
+            case .profile: ProfileView()
+            }
+        }
+        .toolbar(keyboardActive ? .hidden : .visible, for: .tabBar)
+        .onChange(of: app.screen, initial: true) { _, next in
+            switch next {
+            case .home: detent = .compact; focusComposer = false
+            case .chat:
+                if dragStartHeight == nil && detent == .compact {
+                    detent = focusComposer ? .expanded : .medium
+                }
+            default: detent = .medium; dismissComposer()
+            }
+        }
+    }
+
+    private var mapAndPanel: some View {
         GeometryReader { geometry in
             let total = geometry.size.height
             let height = draggedPanelHeight(in: total)
@@ -36,10 +69,10 @@ struct WalkView: View {
             ZStack(alignment: .bottom) {
                 if app.usesBackend {
                     LiveMapView(screen: app.screen, visibleHeight: visibleMapHeight, showsContent: showsMap,
-                                onBackgroundTap: closeChat)
+                                onBackgroundTap: handleMapBackgroundTap)
                 } else {
                     DemoMapView(screen: app.screen, visibleHeight: visibleMapHeight, showsContent: showsMap,
-                                onBackgroundTap: closeChat)
+                                onBackgroundTap: handleMapBackgroundTap)
                 }
                 VStack(spacing: 0) {
                     panelHandle(in: total)
@@ -75,7 +108,11 @@ struct WalkView: View {
                     }
                 }
                 .frame(height: height, alignment: .top)
-                .background(SeruColor.surface, in: UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28))
+                .background {
+                    UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24)
+                        .fill(SeruColor.surface)
+                        .ignoresSafeArea(.container, edges: .bottom)
+                }
             }
             .background(showsMap ? SeruColor.background : SeruColor.surface)
             .animation(dragStartHeight != nil ? nil : SeruMotion.panel(reduceMotion: reduceMotion), value: height)
@@ -86,24 +123,6 @@ struct WalkView: View {
             }
         }
         .ignoresSafeArea(.container, edges: .top)
-        .sheet(item: $settings) { kind in WalkSettingsView(kind: kind) }
-        .sheet(item: $utilitySheet) { kind in
-            switch kind {
-            case .journal: JournalView()
-            case .profile: ProfileView()
-            }
-        }
-        .toolbar(keyboardActive ? .hidden : .visible, for: .tabBar)
-        .onChange(of: app.screen, initial: true) { _, next in
-            switch next {
-            case .home: detent = .compact; focusComposer = false
-            case .chat:
-                if dragStartHeight == nil && detent == .compact {
-                    detent = focusComposer ? .expanded : .medium
-                }
-            default: detent = .medium; dismissComposer()
-            }
-        }
     }
 
     private func openChat(focus: Bool) {
@@ -116,6 +135,15 @@ struct WalkView: View {
         dismissComposer()
         while app.screen != .home { app.goBack() }
         detent = .compact
+    }
+
+    private func handleMapBackgroundTap() {
+        if app.screen == .home || app.screen == .chat {
+            closeChat()
+        } else {
+            dismissComposer()
+            detent = .medium
+        }
     }
 
     private func presentSettings(_ kind: WalkSettingsSheet) {
@@ -254,7 +282,7 @@ struct WalkView: View {
                     attachmentLoader.clear()
                     app.startNewWalk()
                 } label: { SeruMenuLabel(title: "Новая прогулка", symbol: "square.and.pencil") }
-                Button { utilitySheet = .profile } label: { SeruMenuLabel(title: "Профиль", symbol: "person.crop.circle") }
+                Button { utilitySheet = .profile } label: { SeruMenuLabel(title: "Профиль", symbol: "person") }
             } label: {
                 Image(systemName: "ellipsis").font(.system(size: 18, weight: .medium)).frame(width: 44, height: 44)
             }
