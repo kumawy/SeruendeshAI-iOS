@@ -10,7 +10,7 @@ struct LivePresentationTests {
         let destination = GeoPoint(latitude: 51.129, longitude: 71.431)
         let twoGIS = try #require(LiveMapLink.url(provider: .twoGIS, destination: "Парк", coordinate: destination,
                                                 origin: "Байтерек", originCoordinate: start))
-        #expect(twoGIS.path.hasPrefix("/astana/directions/points/"))
+        #expect(twoGIS.path.hasPrefix("/astana/directions/tab/pedestrian/points/"))
         #expect(twoGIS.path.contains("71.43,51.128|71.431,51.129"))
         let yandex = try #require(LiveMapLink.url(provider: .yandex, destination: "Парк", coordinate: destination))
         #expect(yandex.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")) == "maps/163/astana")

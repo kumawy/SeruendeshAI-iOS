@@ -25,7 +25,11 @@ struct SavedView: View {
                                     .padding(.bottom, 20)
                             }
 
-                            if app.savedPlaces.isEmpty {
+                            if app.account.user != nil && !app.account.hasLoadedSaved && app.savedPlaces.isEmpty {
+                                unavailableAccountPlaces
+                                    .padding(24)
+                                    .frame(maxWidth: .infinity)
+                            } else if app.savedPlaces.isEmpty {
                                 emptyState
                                     .frame(minHeight: hasAccountStatus ? nil : viewport.size.height)
                             } else {
@@ -56,7 +60,7 @@ struct SavedView: View {
             .sheet(item: $presentation) { destination in
                 savedSheet(destination)
             }
-            .sheet(isPresented: $accountOpen) { AccountView() }
+            .sheet(isPresented: $accountOpen) { ProfileView() }
             .onChange(of: app.tab) {
                 if app.tab == .walk {
                     presentation = nil
@@ -77,25 +81,22 @@ struct SavedView: View {
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("saved-title")
 
-            if app.usesBackend {
-                Button { accountOpen = true } label: {
+            Button { accountOpen = true } label: {
                     Image(systemName: "person.crop.circle")
                         .font(.system(size: 22, weight: .regular))
                         .frame(width: 44, height: 44)
                         .background(SeruColor.field, in: .circle)
                 }
                 .buttonStyle(.plain)
-                .disabled(app.account.isRestoring)
-                .accessibilityLabel(app.account.user == nil ? "Войти" : "Аккаунт")
+                .accessibilityLabel("Профиль и настройки")
                 .accessibilityIdentifier(app.account.user == nil ? "saved-sign-in" : "saved-account")
-            }
         }
     }
 
     private var showsAccountStatus: Bool {
         if app.account.isRestoring { return true }
         if app.account.user == nil { return app.account.error != nil }
-        return app.account.isSyncing || app.account.syncError != nil || !app.guestSavedPlaces.isEmpty
+        return app.account.isSyncing || app.account.syncError != nil || app.account.isShowingCachedData || !app.guestSavedPlaces.isEmpty
     }
 
     @ViewBuilder
@@ -110,6 +111,11 @@ struct SavedView: View {
             }
         } else {
             VStack(alignment: .leading, spacing: 10) {
+                if app.account.isShowingCachedData {
+                    Label("Показана последняя сохранённая копия. Для изменений обнови избранное.", systemImage: "internaldrive")
+                        .font(.subheadline).foregroundStyle(SeruColor.muted)
+                        .accessibilityIdentifier("saved-cached-data")
+                }
                 if app.account.isSyncing {
                     ProgressView("Синхронизация")
                         .font(.subheadline).accessibilityIdentifier("saved-syncing")
@@ -126,10 +132,26 @@ struct SavedView: View {
                         Task { await app.importGuestSavedPlaces() }
                     }
                     .font(.subheadline).frame(minHeight: 44)
-                    .disabled(app.account.isSyncing || app.account.isWorking)
+                    .disabled(app.account.isSyncing || app.account.isWorking || app.account.isShowingCachedData)
                     .accessibilityIdentifier("saved-import-guest")
                 }
             }
+        }
+    }
+
+    @ViewBuilder private var unavailableAccountPlaces: some View {
+        if app.account.isRestoring || app.account.isSyncing {
+            ProgressView("Загружаем избранное")
+                .accessibilityIdentifier("saved-loading")
+        } else {
+            ContentUnavailableView {
+                Label("Не удалось загрузить избранное", systemImage: "wifi.exclamationmark")
+            } description: {
+                Text("Проверь подключение и попробуй ещё раз.")
+            } actions: {
+                Button("Повторить") { Task { await app.account.restore() } }
+            }
+            .accessibilityIdentifier("saved-load-error")
         }
     }
 
@@ -139,13 +161,18 @@ struct SavedView: View {
                 .frame(width: 208, height: 208)
                 .padding(.bottom, 24)
 
-            Text("Здесь будут любимые места")
+            Text("Пока пусто")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(SeruColor.ink)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: 290)
                 .accessibilityIdentifier("saved-empty-title")
+
+            Text("Любимые места появятся здесь")
+                .font(.subheadline).foregroundStyle(SeruColor.muted)
+                .multilineTextAlignment(.center)
+                .padding(.top, 8)
 
             PrimaryAction(title: "Найти места", symbol: "magnifyingglass") {
                 app.tab = .walk
@@ -209,31 +236,13 @@ private enum SavedPresentation: Identifiable {
 }
 
 private struct SavedPlaceCard: View {
+    @Environment(AppModel.self) private var app
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let place: Place
     let isSaved: Bool
     let showDetail: () -> Void
     let showRoute: () -> Void
     let toggleSaved: () -> Void
-
-    private var displayName: String {
-        if place.isLive { return place.name }
-        return switch place.id {
-        case "coffee": "Кофейня Sensily на Нуржоле"
-        case "river": "Набережная реки Ишим (Арбат)"
-        default: place.name
-        }
-    }
-
-    private var displayMinutes: Int {
-        if place.isLive { return place.travelMinutes }
-        return switch place.id {
-        case "garden": 18
-        case "coffee": 8
-        case "river": 26
-        default: place.travelMinutes
-        }
-    }
 
     private var displayImageAsset: String {
         if place.isLive { return "" }
@@ -257,7 +266,7 @@ private struct SavedPlaceCard: View {
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(alignment: .top, spacing: 0) {
                         Button(action: showDetail) {
-                            Text(displayName)
+                            Text(place.name)
                                 .font(.headline.weight(.semibold))
                                 .foregroundStyle(SeruColor.ink)
                                 .multilineTextAlignment(.leading)
@@ -327,6 +336,8 @@ private struct SavedPlaceCard: View {
                 .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)
+        .disabled(app.account.user != nil && app.account.isShowingCachedData)
+        .sensoryFeedback(.selection, trigger: isSaved)
         .accessibilityLabel(isSaved ? "Удалить \(place.name) из избранного" : "Сохранить \(place.name)")
     }
 
@@ -349,7 +360,7 @@ private struct SavedPlaceCard: View {
     @ViewBuilder private var walkingDistance: some View {
         let parts = [
             place.distance.isEmpty ? nil : place.distance,
-            (!place.isLive || displayMinutes > 0) ? "~\(displayMinutes) мин" : nil
+            place.travelMinutes > 0 ? "~\(place.travelMinutes) мин" : nil
         ].compactMap { $0 }
         if !parts.isEmpty {
             Label(parts.joined(separator: " · "), systemImage: "figure.walk")

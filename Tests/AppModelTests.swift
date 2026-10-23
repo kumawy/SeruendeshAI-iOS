@@ -12,9 +12,9 @@ struct AppModelTests {
         UserDefaults(suiteName: "seru.tests.\(UUID().uuidString)")!
     }
 
-    @Test func defaultThemeIsDarkButExplicitPreferenceSurvives() {
+    @Test func defaultThemeFollowsSystemAndExplicitPreferenceSurvives() {
         let defaults = storage()
-        #expect(AppModel(defaults: defaults).theme == .dark)
+        #expect(AppModel(defaults: defaults).theme == .system)
 
         defaults.set("light", forKey: "seru.theme")
         #expect(AppModel(defaults: defaults).theme == .light)
@@ -79,7 +79,9 @@ struct AppModelTests {
         let app = AppModel(defaults: storage())
         app.withKids = true
         app.showResults()
-        #expect(app.places.map(\.id) == ["garden", "park"])
+        #expect(!app.places.isEmpty)
+        #expect(app.places.allSatisfy { $0.isChildFriendly })
+        #expect(!app.places.contains { $0.id == "coffee" })
         app.withKids = false
         app.showResults()
         #expect(app.places.contains { $0.id == "coffee" })

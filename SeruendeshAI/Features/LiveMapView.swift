@@ -1,7 +1,7 @@
 import MapKit
 import SwiftUI
 
-/// The backend map uses only server coordinates. The default city is a camera
+/// Uses verified local or supplied server coordinates. The default city is a camera
 /// fallback, never a substitute for the selected starting point or GPS.
 struct LiveMapView: View {
     let screen: WalkScreen
@@ -36,13 +36,13 @@ struct LiveMapView: View {
                         }
                         ForEach(presentation.places) { place in
                             if let point = place.coordinate {
-                                Marker(place.name, systemImage: place.symbol, coordinate: mapCoordinate(point))
+                                Marker(markerTitle(place, presentation: presentation), systemImage: place.symbol, coordinate: mapCoordinate(point))
                                     .tint(SeruColor.action)
                                     .tag(place.id)
                             }
                         }
-                        if let origin = presentation.origin {
-                            Marker("Старт: \(app.routeForCurrentScreen?.originLabel ?? app.origin)", systemImage: "flag.fill", coordinate: mapCoordinate(origin))
+                        if let origin = presentation.origin, !presentation.places.contains(where: { $0.coordinate == origin }) {
+                            Marker("Старт: \(presentation.originLabel)", systemImage: "flag.fill", coordinate: mapCoordinate(origin))
                                 .tint(.gray)
                         }
                     }
@@ -91,8 +91,9 @@ struct LiveMapView: View {
     }
 
     private var mapPresentation: LiveMapPresentation {
-        let route: WalkRoute? = if case .route = screen { app.routeForCurrentScreen } else { nil }
-        let origin = (route?.originCoordinate ?? app.originCoordinate).flatMap { isValidMapPoint($0) ? $0 : nil }
+        let route: WalkRoute? = if case .route = screen { app.routeForCurrentScreen } else if screen == .plan { app.currentPlan } else { nil }
+        let preview: RoutePreview? = if case .route(let id) = screen, app.routePreview?.placeID == id { app.routePreview } else { nil }
+        let origin = (route?.originCoordinate ?? preview?.origin ?? app.originCoordinate).flatMap { isValidMapPoint($0) ? $0 : nil }
         let routePlaces: [Place]?
         if let route {
             routePlaces = actualPlaces(ids: route.placeIDs)
@@ -128,6 +129,11 @@ struct LiveMapView: View {
                                  isEstimated: preview.geometry != "network")]
         }
 
+        if lines.isEmpty, route == nil, case .route(let id) = screen, !app.usesBackend,
+           let start = origin, let end = places.first(where: { $0.id == id })?.coordinate, start != end {
+            lines = [LiveMapLine(id: "estimate:\(id)", points: [start, end], isEstimated: true)]
+        }
+
         let focus: String
         var fitPoints: [GeoPoint]
         if case .detail(let id) = screen {
@@ -141,8 +147,15 @@ struct LiveMapView: View {
             fitPoints = lines.flatMap(\.points) + places.compactMap(\.coordinate)
             if let origin { fitPoints.append(origin) }
         }
-        return LiveMapPresentation(places: places, origin: origin, lines: lines,
+        return LiveMapPresentation(places: places, origin: origin,
+                                   originLabel: route?.originLabel ?? preview?.originLabel ?? app.origin,
+                                   numberedStops: route?.placeIDs ?? [], lines: lines,
                                    fitTarget: LiveMapFitTarget(focus: focus, points: fitPoints))
+    }
+
+    private func markerTitle(_ place: Place, presentation: LiveMapPresentation) -> String {
+        if let index = presentation.numberedStops.firstIndex(of: place.id) { return "\(index + 1). \(place.name)" }
+        return place.name
     }
 
     private func actualPlaces(ids: [String]) -> [Place] {
@@ -173,8 +186,8 @@ struct LiveMapView: View {
                         }
                         .background(.regularMaterial, in: .rect(cornerRadius: 12))
                     }
-                    mapButton(symbol: "location.fill", label: "Центрировать карту") {
-                        let points = app.originCoordinate.flatMap { isValidMapPoint($0) ? [$0] : nil } ?? target.points
+                    mapButton(symbol: "scope", label: "Показать старт и места прогулки") {
+                        let points = target.points
                         position = .rect(fittingRect(points: points, size: size))
                         lastFitTarget = target
                     }
@@ -189,7 +202,7 @@ struct LiveMapView: View {
     private func mapButton(symbol: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 17, weight: .medium))
+                .font(.body.weight(.medium))
                 .foregroundStyle(.primary)
                 .frame(width: 44, height: 44)
         }
@@ -252,6 +265,8 @@ struct LiveMapView: View {
 private struct LiveMapPresentation {
     let places: [Place]
     let origin: GeoPoint?
+    let originLabel: String
+    let numberedStops: [String]
     let lines: [LiveMapLine]
     let fitTarget: LiveMapFitTarget
 }

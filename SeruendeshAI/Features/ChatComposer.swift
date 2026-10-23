@@ -24,15 +24,15 @@ struct ChatComposer: View {
         @Bindable var app = app
         let isLoading = attachmentLoader.isLoading
         VStack(spacing: 7) {
-            if let photoData = app.chatAttachmentData, let image = UIImage(data: photoData) {
-                attachmentPreview(image)
+            if let photoData = app.chatAttachmentData {
+                attachmentPreview(photoData)
             }
             HStack(alignment: .bottom, spacing: 5) {
                 PhotosPicker(selection: Binding(
                     get: { attachmentLoader.selectedPhoto },
                     set: { attachmentLoader.select($0, into: app) }
                 ), matching: .images) {
-                    Image(systemName: "camera")
+                    Image(systemName: "photo.on.rectangle")
                         .opacity(isLoading ? 0 : 1)
                         .frame(width: 44, height: 44).contentShape(Rectangle())
                 }
@@ -47,7 +47,6 @@ struct ChatComposer: View {
                     }
                 }
                 .accessibilityLabel(attachmentLoader.isLoading ? "Загрузка фото" : "Прикрепить фото")
-                .disabled(app.usesBackend && !app.photoSearchAvailable)
 
                 TextField("Напиши Серу…", text: $app.chatDraft,
                           prompt: Text("Напиши Серу…").foregroundStyle(SeruColor.muted), axis: .vertical)
@@ -103,16 +102,11 @@ struct ChatComposer: View {
         .onDisappear { onFocusChange(false) }
     }
 
-    private func attachmentPreview(_ image: UIImage) -> some View {
+    private func attachmentPreview(_ data: Data) -> some View {
         HStack(spacing: 10) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
+            ChatPhotoAttachment(data: data, maxPixelSize: 240)
                 .frame(width: 54, height: 54)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
-                .contentShape(.rect)
-                .allowsHitTesting(false)
-                .accessibilityLabel("Прикреплённое фото")
             Spacer()
             Button {
                 app.chatAttachmentData = nil

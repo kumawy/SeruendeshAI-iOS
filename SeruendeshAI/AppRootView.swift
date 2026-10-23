@@ -3,6 +3,7 @@ import SwiftUI
 struct AppRootView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.seruSplashIsPresented) private var splashIsPresented
     @State private var presentation: RootPresentation?
     @State private var deferredPresentation: RootPresentation?
@@ -23,7 +24,8 @@ struct AppRootView: View {
                         .accessibilityLabel("Прогулка")
                 }
                 Tab(value: AppTab.events) {
-                    EventsView(mascotActive: presentation == nil && !splashIsPresented)
+                    EventsView(mascotActive: presentation == nil && !splashIsPresented,
+                               onProfile: { presentation = .profile })
                 } label: {
                     Image(app.tab == .events ? "NavTicketActive" : "NavTicketInactive")
                         .renderingMode(.original)
@@ -65,7 +67,14 @@ struct AppRootView: View {
             }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await app.account.restore() } }
+            if phase == .active {
+                Task {
+                    let store = app.account
+                    async let account: Void = store.restore()
+                    await app.bootstrap()
+                    await account
+                }
+            }
         }
         .onChange(of: app.account.syncError) { _, error in
             if let error { app.toast = error }
@@ -75,19 +84,32 @@ struct AppRootView: View {
         }
         .overlay(alignment: .top) {
             if let toast = app.toast {
-                Text(toast).font(.subheadline.weight(.medium))
-                    .padding(.horizontal, 18).padding(.vertical, 12)
-                    .glassEffect(.regular, in: .capsule)
-                    .padding(.top, 66).allowsHitTesting(false)
+                HStack(spacing: 12) {
+                    Text(toast).font(.subheadline.weight(.medium))
+                        .fixedSize(horizontal: false, vertical: true)
+                    if toast == "Место удалено из избранного", app.recentlyRemovedPlace != nil {
+                        Button("Отменить") { app.undoSavedRemoval() }
+                            .font(.subheadline.weight(.semibold))
+                            .frame(minHeight: 44)
+                            .accessibilityIdentifier("saved-undo")
+                    }
+                }
+                    .padding(.horizontal, 18).padding(.vertical, 8)
+                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
+                    .frame(maxWidth: 480)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 66)
                     .transition(.opacity)
                     .accessibilityAddTraits(.updatesFrequently)
             }
         }
-        .task(id: app.toast) {
-            guard app.toast != nil else { return }
-            do { try await Task.sleep(for: .seconds(2)) } catch { return }
+        .task(id: "\(app.toast ?? ""):\(app.recentlyRemovedPlace?.id ?? "")") {
+            guard let toast = app.toast else { return }
+            AccessibilityNotification.Announcement(toast).post()
+            do { try await Task.sleep(for: .seconds(5)) } catch { return }
             app.toast = nil
         }
+        .animation(SeruMotion.panel(reduceMotion: reduceMotion), value: app.toast != nil)
         .overlay(alignment: .bottom) {
             if let feedback = app.mascotFeedback,
                app.toast == nil, presentation == nil, !splashIsPresented {

@@ -282,6 +282,25 @@ struct BackendIntegrationTests {
         #expect(app.originCoordinate == GeoPoint(latitude: 51.17, longitude: 71.45))
     }
 
+    @Test func journalRestoreCannotReuseAnotherWalksGeocodedOrigin() async throws {
+        let backend = IntegrationBackend()
+        let app = AppModel(defaults: storage(), backend: backend)
+        app.sendMessage("Прогулка от Байтерека")
+        try await waitUntil { !app.isResponding }
+        let saved = try #require(app.journalEntries.first)
+        app.startNewWalk()
+        await backend.setHoldingGeocodes(true)
+        app.saveOrigin("Адрес А")
+        app.sendMessage("Другая прогулка")
+        try await waitForBackend { await backend.geocodeQueries == ["Адрес А"] }
+        try await backend.releaseGeocode(query: "Адрес А", lat: 51.16, lon: 71.42)
+        try await waitUntil { !app.isResponding }
+        app.restoreJournalEntry(id: saved.id)
+        app.sendMessage("Продолжим первую прогулку")
+        try await waitUntil { !app.isResponding }
+        #expect(await backend.requests.last?.origin == .landmark("baiterek"))
+    }
+
     @Test func slowRouteIdeaCannotReplaceANewerChatAnswer() async throws {
         let backend = IntegrationBackend()
         await backend.setHoldingIdeas(true)

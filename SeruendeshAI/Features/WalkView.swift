@@ -4,10 +4,13 @@ struct WalkView: View {
     let topClearance: CGFloat
     var mascotActive: Bool = true
     @Environment(AppModel.self) private var app
+    @Environment(ChatAttachmentLoader.self) private var attachmentLoader
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var detent: PanelSize = .compact
+    @State private var chatScrollState = ChatScrollState()
     @State private var settings: WalkSettingsSheet?
+    @State private var utilitySheet: UtilitySheet?
     @State private var keyboardActive = false
     @State private var focusComposer = false
     @State private var focusDismissal = 0
@@ -19,6 +22,10 @@ struct WalkView: View {
     @GestureState private var isDragging = false
 
     enum PanelSize { case compact, medium, expanded }
+    private enum UtilitySheet: String, Identifiable {
+        case journal, profile
+        var id: String { rawValue }
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -38,7 +45,8 @@ struct WalkView: View {
                     panelHandle(in: total)
                     if app.screen == .home || app.screen == .chat {
                         ChatScreen(
-                            availableHeight: max(0, height - 26),
+                            availableHeight: max(0, height - 44),
+                            scrollState: chatScrollState,
                             collapsed: app.screen == .home && dragStartHeight == nil,
                             focusComposer: focusComposer,
                             focusDismissal: focusDismissal,
@@ -58,6 +66,7 @@ struct WalkView: View {
                                 if abs(compactContentHeight - height) > 1 { compactContentHeight = height }
                             },
                             onSettings: presentSettings,
+                            onProfile: { dismissComposer(); utilitySheet = .profile },
                             mascotActive: mascotActive && settings == nil
                         )
                     } else {
@@ -69,7 +78,7 @@ struct WalkView: View {
                 .background(SeruColor.surface, in: UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28))
             }
             .background(showsMap ? SeruColor.background : SeruColor.surface)
-            .animation(reduceMotion || dragStartHeight != nil ? nil : .smooth(duration: 0.28), value: height)
+            .animation(dragStartHeight != nil ? nil : SeruMotion.panel(reduceMotion: reduceMotion), value: height)
             .onChange(of: isDragging) { _, active in
                 if !active && dragStartHeight != nil {
                     finishDrag(translation: dragTranslation, predictedTranslation: dragTranslation, in: total)
@@ -78,8 +87,14 @@ struct WalkView: View {
         }
         .ignoresSafeArea(.container, edges: .top)
         .sheet(item: $settings) { kind in WalkSettingsView(kind: kind) }
+        .sheet(item: $utilitySheet) { kind in
+            switch kind {
+            case .journal: JournalView()
+            case .profile: ProfileView()
+            }
+        }
         .toolbar(keyboardActive ? .hidden : .visible, for: .tabBar)
-        .onChange(of: app.screen) { _, next in
+        .onChange(of: app.screen, initial: true) { _, next in
             switch next {
             case .home: detent = .compact; focusComposer = false
             case .chat:
@@ -129,7 +144,7 @@ struct WalkView: View {
     private func height(for size: PanelSize, in total: CGFloat) -> CGFloat {
         let maximum = max(180, total - topClearance)
         switch size {
-        case .compact: return min(compactContentHeight + 26, maximum)
+        case .compact: return min(compactContentHeight + 44, maximum)
         case .medium:
             let fraction = typeSize.isAccessibilitySize ? 0.78 : 0.56
             let minimum: CGFloat = typeSize.isAccessibilitySize ? 560 : 420
@@ -151,7 +166,7 @@ struct WalkView: View {
             else { detent = .expanded }
         } label: {
             Capsule().fill(SeruColor.line).frame(width: 40, height: 4)
-                .frame(maxWidth: .infinity).frame(height: 26).contentShape(Rectangle())
+                .frame(maxWidth: .infinity).frame(height: 44).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(detent == .expanded ? "Свернуть панель" : "Развернуть панель")
@@ -224,15 +239,26 @@ struct WalkView: View {
     private var panelBack: some View {
         HStack {
             Button { app.goBack() } label: {
-                Label("Назад", systemImage: "chevron.left").font(.subheadline.weight(.medium)).frame(minHeight: 40)
+                SeruMenuLabel(title: "Назад", symbol: "chevron.left").font(.subheadline.weight(.medium)).frame(minHeight: 44)
             }
             .accessibilityIdentifier("walk-back")
             Spacer()
             if app.screen == .results {
                 Button { settings = .filters } label: {
-                    Label("Условия", systemImage: "slider.horizontal.3").font(.subheadline).frame(minHeight: 40)
+                    SeruMenuLabel(title: "Условия", symbol: "slider.horizontal.3").font(.subheadline).frame(minHeight: 44)
                 }
             }
+            Menu {
+                Button { utilitySheet = .journal } label: { SeruMenuLabel(title: "Журнал прогулок", symbol: "clock.arrow.circlepath") }
+                Button {
+                    attachmentLoader.clear()
+                    app.startNewWalk()
+                } label: { SeruMenuLabel(title: "Новая прогулка", symbol: "square.and.pencil") }
+                Button { utilitySheet = .profile } label: { SeruMenuLabel(title: "Профиль", symbol: "person.crop.circle") }
+            } label: {
+                Image(systemName: "ellipsis").font(.system(size: 18, weight: .medium)).frame(width: 44, height: 44)
+            }
+            .accessibilityLabel("Журнал и профиль").accessibilityIdentifier("walk-options")
         }
         .foregroundStyle(SeruColor.action).padding(.horizontal, 16)
     }
@@ -272,6 +298,8 @@ private struct PanelScrollView<Content: View>: View {
 
 struct ResultsPanel: View {
     @Environment(AppModel.self) private var app
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AccessibilityFocusState private var errorFocused: Bool
     let onSettings: () -> Void
     var mascotActive: Bool = true
     var body: some View {
@@ -280,9 +308,12 @@ struct ResultsPanel: View {
                 Button(action: onSettings) {
                     Label("\(app.origin) · \(app.duration) мин", systemImage: "mappin")
                         .font(.system(.caption, design: .default))
+                        .frame(minHeight: 44)
                 }
                 Spacer(minLength: 2)
-                Text("\(app.places.count) места").font(.caption).foregroundStyle(SeruColor.muted)
+                Text(SeruText.placeCount(app.places.count)).font(.caption).foregroundStyle(SeruColor.muted)
+                    .contentTransition(.numericText(value: Double(app.places.count)))
+                    .animation(SeruMotion.feedback(reduceMotion: reduceMotion), value: app.places.count)
             }.foregroundStyle(SeruColor.ink)
             if app.isResponding {
                 HStack(spacing: 16) {
@@ -290,7 +321,7 @@ struct ResultsPanel: View {
                         .frame(width: 112, height: 112)
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Подбираю места…").font(.subheadline)
-                        Button("Отмена") { app.cancelResponse() }
+                        Button("Отмена") { app.cancelResponse() }.frame(minHeight: 44)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -300,8 +331,8 @@ struct ResultsPanel: View {
                         .frame(width: 112, height: 112)
                     VStack(alignment: .leading, spacing: 10) {
                         Text(error).font(.subheadline).foregroundStyle(SeruColor.muted)
-                            .accessibilityIdentifier("response-error")
-                        Button("Повторить") { app.retryResponse() }
+                            .accessibilityIdentifier("response-error").accessibilityFocused($errorFocused)
+                        Button("Повторить") { app.retryResponse() }.frame(minHeight: 44)
                     }
                 }
             } else if app.places.isEmpty {
@@ -340,7 +371,14 @@ struct ResultsPanel: View {
                     .foregroundStyle(SeruColor.action)
                     .background(SeruColor.field, in: RoundedRectangle(cornerRadius: 16))
             }.buttonStyle(.plain)
-        }.padding(.horizontal, 16)
+        }
+        .padding(.horizontal, 16)
+        .onChange(of: app.responseError) { _, error in
+            if let error {
+                AccessibilityNotification.Announcement(error).post()
+                errorFocused = true
+            }
+        }
     }
 }
 

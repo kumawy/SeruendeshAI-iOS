@@ -14,20 +14,33 @@ final class AccountStore {
     private(set) var isSyncing = false
     var syncError: String?
     var passwordResetAvailable = false
+    private(set) var isShowingCachedData = false
+    private(set) var hasLoadedSaved = false
 
     @ObservationIgnored private let backend: (any SeruAccountBackend)?
+    @ObservationIgnored private let defaults: UserDefaults?
     @ObservationIgnored private var authenticationID = UUID()
     @ObservationIgnored private var sessionID = UUID()
     @ObservationIgnored private var refreshID = UUID()
     @ObservationIgnored private var savedRevision = 0
     @ObservationIgnored private var refreshing = false
+    @ObservationIgnored private var sessionVerified = false
     @ObservationIgnored private var confirmed: [String: Place] = [:]
     @ObservationIgnored private var desired: [String: Bool] = [:]
     @ObservationIgnored private var pendingPlaces: [String: Place] = [:]
     @ObservationIgnored private var failedChanges: [String: FailedChange] = [:]
     @ObservationIgnored private var saveTasks: [String: Task<Void, Never>] = [:]
 
-    init(backend: (any SeruAccountBackend)?) { self.backend = backend }
+    init(backend: (any SeruAccountBackend)?, defaults: UserDefaults? = nil) {
+        self.backend = backend
+        self.defaults = defaults
+        guard backend != nil, let cached = cachedSession() else { return }
+        user = cached.user
+        confirmed = Dictionary(cached.places.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest })
+        savedPlaces = confirmed.values.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        hasLoadedSaved = cached.hasLoadedSaved
+        isShowingCachedData = true
+    }
 
     func restore() async {
         guard let backend, !isWorking, !isRestoring else { return }
@@ -42,6 +55,7 @@ final class AccountStore {
             if restored == nil, user != nil { expireSession() }
             else if restored?.id != user?.id { setSession(restored) }
             else { user = restored }
+            sessionVerified = restored != nil
             if restored != nil { await refreshSaved() }
         } catch is CancellationError { }
         catch {
@@ -112,6 +126,7 @@ final class AccountStore {
 
     func refreshSaved() async {
         guard let backend, user != nil else { return }
+        guard sessionVerified else { await restore(); return }
         let session = sessionID
         let refresh = UUID()
         let revision = savedRevision
@@ -133,6 +148,9 @@ final class AccountStore {
                 result[item.id] = item.snapshot.place(id: item.id)
             }
             savedPlaces = confirmed.values.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            hasLoadedSaved = true
+            isShowingCachedData = false
+            persistCache()
             syncError = savedFailureMessage
         } catch is CancellationError { }
         catch {
@@ -164,6 +182,9 @@ final class AccountStore {
         guard backend != nil, user != nil else {
             syncError = "Войди в аккаунт, чтобы сохранить место на сервере."; return
         }
+        guard !isShowingCachedData else {
+            syncError = "Пока показан кэш. Подключись к интернету и обнови избранное."; return
+        }
         queue(place, saved: !isSaved(place))
     }
 
@@ -172,6 +193,9 @@ final class AccountStore {
     func importGuestPlaces(_ places: [Place]) async -> [String] {
         guard backend != nil, user != nil else {
             syncError = "Войди в аккаунт, чтобы перенести избранное."; return []
+        }
+        guard !isShowingCachedData else {
+            syncError = "Сначала обнови избранное, чтобы подтвердить аккаунт."; return []
         }
         let session = sessionID
         syncError = savedFailureMessage
@@ -200,6 +224,7 @@ final class AccountStore {
             let authenticated = try await operation()
             guard authenticationID == request, !Task.isCancelled else { return false }
             setSession(authenticated)
+            sessionVerified = true
             await refreshSaved()
             // A successful auth result remains valid when loading favorites failed.
             return user?.id == authenticated.id
@@ -243,6 +268,7 @@ final class AccountStore {
     }
 
     private func setSession(_ value: AccountUser?) {
+        let cached = cachedSession().flatMap { $0.user.id == value?.id ? $0 : nil }
         sessionID = UUID()
         refreshID = UUID()
         savedRevision += 1
@@ -257,6 +283,17 @@ final class AccountStore {
         syncError = nil
         updateSyncing()
         user = value
+        sessionVerified = false
+        hasLoadedSaved = false
+        isShowingCachedData = false
+        if let cached {
+            confirmed = Dictionary(cached.places.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest })
+            savedPlaces = confirmed.values.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            hasLoadedSaved = cached.hasLoadedSaved
+            isShowingCachedData = true
+        }
+        if value == nil { defaults?.removeObject(forKey: cacheKey) }
+        else { persistCache() }
     }
 
     private func expireSession() {
@@ -301,6 +338,7 @@ final class AccountStore {
                     guard sessionID == session, !Task.isCancelled else { return }
                     confirmed.removeValue(forKey: placeID)
                 }
+                persistCache()
                 // Keep the most recent visible intent while a second write is needed.
                 if desired[placeID] == (confirmed[placeID] != nil) {
                     setVisible(confirmed[placeID] ?? place, saved: confirmed[placeID] != nil)
@@ -332,6 +370,28 @@ final class AccountStore {
         let place: Place
         let saved: Bool
         let message: String
+    }
+    private struct CachedSession: Codable {
+        let user: AccountUser
+        let places: [Place]
+        let hasLoadedSaved: Bool
+    }
+    private var cacheKey: String {
+        let scope = (backend as? BackendAPI)?.baseURL.absoluteString ?? "account"
+        return "seru.account.cachedSession." + Data(scope.utf8).base64EncodedString()
+    }
+    private func cachedSession() -> CachedSession? {
+        guard let data = defaults?.data(forKey: cacheKey), data.count <= 4 * 1024 * 1024,
+              let value = try? JSONDecoder().decode(CachedSession.self, from: data),
+              !value.user.id.isEmpty else { return nil }
+        return value
+    }
+    private func persistCache() {
+        guard let user else { return }
+        let value = CachedSession(user: user, places: confirmed.values.sorted { $0.id < $1.id }, hasLoadedSaved: hasLoadedSaved)
+        if let bytes = try? JSONEncoder().encode(value), bytes.count <= 4 * 1024 * 1024 {
+            defaults?.set(bytes, forKey: cacheKey)
+        }
     }
     private var savedFailureMessage: String? { failedChanges.sorted { $0.key < $1.key }.first?.value.message }
     private func updateSyncing() { isSyncing = refreshing || !saveTasks.isEmpty }

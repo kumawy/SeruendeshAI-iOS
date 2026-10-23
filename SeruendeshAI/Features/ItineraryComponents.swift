@@ -39,7 +39,7 @@ struct ItineraryActionLabel: View {
 
     private var symbol: String {
         switch (screen, index) {
-        case ("detail", 22), ("plan", 23): selected ? "heart.fill" : "heart"
+        case ("detail", 22): selected ? "heart.fill" : "heart"
         case ("detail", 23), ("route", 16), ("route-dark", 16): "square.and.arrow.up"
         case ("plan", 22): "arrow.up.right"
         default: "info.circle"
@@ -59,37 +59,6 @@ struct ItineraryActionLabel: View {
         .padding(.horizontal, 8)
         .background(SeruColor.field, in: .rect(cornerRadius: 12))
         .contentShape(.rect(cornerRadius: 12))
-    }
-}
-
-enum ExternalMapProvider: String, CaseIterable, Identifiable {
-    case apple = "Apple Maps"
-    case twoGIS = "2ГИС"
-    case yandex = "Яндекс Карты"
-
-    var id: String { rawValue }
-
-    func url(destination: String, origin: String = "Монумент Байтерек, Астана") -> URL? {
-        var components = URLComponents()
-        components.scheme = "https"
-        switch self {
-        case .apple:
-            components.host = "maps.apple.com"
-            components.path = "/"
-            components.queryItems = [
-                URLQueryItem(name: "saddr", value: origin),
-                URLQueryItem(name: "daddr", value: destination + ", Астана"),
-                URLQueryItem(name: "dirflg", value: "w")
-            ]
-        case .twoGIS:
-            components.host = "2gis.kz"
-            components.path = "/astana/search/" + destination
-        case .yandex:
-            components.host = "yandex.kz"
-            components.path = "/maps/163/astana/"
-            components.queryItems = [URLQueryItem(name: "text", value: destination + ", Астана")]
-        }
-        return components.url
     }
 }
 

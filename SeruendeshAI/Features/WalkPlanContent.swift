@@ -4,15 +4,18 @@ struct WalkPlanContent: View {
     var mascotActive: Bool = true
     @Environment(AppModel.self) private var app
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var audioGuide = ItineraryAudioGuide()
+    @State private var showingEditor = false
 
-    private var route: WalkRoute? { app.usesBackend ? app.currentPlan : DemoData.featuredRoute }
+    private var route: WalkRoute? { app.currentPlan }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             if let route {
                 header(route)
                 timeline(route)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: route.placeIDs)
                 audioWidget(route)
                 actions(route)
             } else if app.isLoadingPlan {
@@ -21,25 +24,29 @@ struct WalkPlanContent: View {
                         .frame(width: 156, height: 156)
                     Text("Составляем план прогулки").font(.subheadline)
                 }
-                    .frame(maxWidth: .infinity, minHeight: 180)
-            } else if app.planError != nil {
-                planUnavailable
+                .frame(maxWidth: .infinity, minHeight: 180)
             } else {
-                // The model-owned request starts on appearance; do not imply a failure before it starts.
-                WalkStateMascot(scene: .routing, isActive: false)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 180)
+                planUnavailable
             }
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
         .padding(.bottom, 24)
         .task {
-            if app.usesBackend && app.currentPlan == nil && !app.isLoadingPlan && app.planError == nil {
-                await app.retryPlan()
-            }
+            if app.currentPlan == nil && !app.isLoadingPlan && app.planError == nil { await app.retryPlan() }
         }
         .onDisappear { audioGuide.stop() }
+        .sheet(isPresented: $showingEditor) {
+            if let route {
+                PlanStopsEditor(places: route.placeIDs.map { app.place(id: $0) }) { ids in
+                    audioGuide.stop()
+                    app.updatePlan(placeIDs: ids)
+                    if !ids.isEmpty, app.currentPlan?.placeIDs != ids {
+                        app.toast = "Не все остановки поместились в выбранное время. Проверь обновлённый план."
+                    }
+                }
+            }
+        }
     }
 
     private var planUnavailable: some View {
@@ -47,13 +54,13 @@ struct WalkPlanContent: View {
             WalkStateMascot(scene: .routeBlocked, isActive: mascotActive)
                 .frame(width: 148, height: 148)
                 .frame(maxWidth: .infinity)
-            Label("План пока не готов", systemImage: "map")
+            Text("В плане пока нет остановок")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(SeruColor.ink)
-            Text(app.planError ?? "Попробуйте составить прогулку ещё раз.")
+            Text(app.planError ?? "Попробуй изменить время или пожелания к прогулке.")
                 .font(.subheadline)
                 .foregroundStyle(SeruColor.muted)
-            PrimaryAction(title: "Повторить", symbol: "arrow.clockwise") {
+            PrimaryAction(title: "Составить заново", symbol: "arrow.clockwise") {
                 Task { await app.retryPlan() }
             }
         }
@@ -62,60 +69,25 @@ struct WalkPlanContent: View {
         .seruCard(radius: 16)
     }
 
-    private func durationLabel(_ route: WalkRoute) -> String {
-        let hours = route.duration / 60
-        let minutes = route.duration % 60
-        if hours == 0 { return "\(minutes) мин" }
-        if minutes == 0 { return "\(hours) ч" }
-        return "\(hours) ч \(minutes) мин"
+    private func durationLabel(_ minutes: Int) -> String {
+        let hours = minutes / 60
+        let remainder = minutes % 60
+        if hours == 0 { return "\(remainder) мин" }
+        if remainder == 0 { return "\(hours) ч" }
+        return "\(hours) ч \(remainder) мин"
     }
 
     private func stops(_ route: WalkRoute) -> [WalkPlanStop] {
-        if !route.isLive {
-            return [
-                WalkPlanStop(place: app.place(id: "baiterek"), number: 1, title: "Монумент Байтерек", detail: "15 мин на месте", asset: "plan-asset-001", nextID: "coffee"),
-                WalkPlanStop(place: app.place(id: "coffee"), number: 2, title: "Бульвар Нуржол и кофе", detail: "20 мин на месте", asset: "plan-asset-002", nextID: "garden"),
-                WalkPlanStop(place: app.place(id: "garden"), number: 3, title: "Ботанический сад", detail: "35 мин на месте", asset: "plan-asset-003", nextID: nil)
-            ]
-        }
-        return route.placeIDs.enumerated().map { index, id in
+        route.placeIDs.enumerated().map { index, id in
             let place = app.place(id: id)
-            return WalkPlanStop(
-                place: place,
-                number: index + 1,
-                title: place.name,
-                detail: place.visitMinutes > 0 ? "\(place.visitMinutes) мин на месте" : place.category,
-                asset: nil,
-                nextID: index + 1 < route.placeIDs.count ? route.placeIDs[index + 1] : nil
-            )
+            return WalkPlanStop(place: place, number: index + 1, title: place.name,
+                detail: place.visitMinutes > 0 ? "Около \(place.visitMinutes) мин на месте" : place.category,
+                asset: nil, nextID: index + 1 < route.placeIDs.count ? route.placeIDs[index + 1] : nil)
         }
     }
 
     private func guideText(_ route: WalkRoute) -> String {
-        if !route.isLive {
-            return "Начнём у монумента Байтерек. С площади отправимся по бульвару Нуржол, где можно рассмотреть современную архитектуру и остановиться на кофе. Затем пройдём к Ботаническому саду. Здесь есть оранжерея, пруд и дорожки среди зелени."
-        }
-        return stops(route).map { stop in
-            "Остановка \(stop.number). \(stop.title). \(stop.place.reason)"
-        }.joined(separator: " ")
-    }
-
-    private func shareText(_ route: WalkRoute) -> String {
-        let details = [
-            route.duration > 0 ? durationLabel(route) : nil,
-            route.distance.isEmpty ? nil : route.distance,
-            "\(route.placeIDs.count) \(stopCountWord(route.placeIDs.count))"
-        ].compactMap { $0 }.joined(separator: " · ")
-        return "\(route.name): \(route.subtitle). \(details). SeruendeshAI."
-    }
-
-    private func stopCountWord(_ count: Int) -> String {
-        if (11...14).contains(count % 100) { return "остановок" }
-        switch count % 10 {
-        case 1: return "остановка"
-        case 2...4: return "остановки"
-        default: return "остановок"
-        }
+        stops(route).map { "Остановка \($0.number). \($0.title). \($0.place.reason)" }.joined(separator: " ")
     }
 
     private func header(_ route: WalkRoute) -> some View {
@@ -123,12 +95,11 @@ struct WalkPlanContent: View {
             HStack(alignment: .top, spacing: 8) {
                 Text(route.name)
                     .font(.title.weight(.bold))
-                    .tracking(-0.4)
                     .foregroundStyle(SeruColor.ink)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 0)
-                ShareLink(item: shareText(route)) {
+                ShareLink(item: MapLinks.shareRoute(route, places: route.placeIDs.map { app.place(id: $0) })) {
                     Image(systemName: "square.and.arrow.up")
                         .font(.body)
                         .foregroundStyle(SeruColor.ink)
@@ -136,55 +107,90 @@ struct WalkPlanContent: View {
                 }
                 .accessibilityLabel("Поделиться планом прогулки")
             }
-            HStack(spacing: 12) {
-                if !route.isLive || route.duration > 0 {
-                    Label(durationLabel(route), systemImage: "clock")
-                }
-                if !route.distance.isEmpty {
-                    Label(route.distance, systemImage: "figure.walk")
-                }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) { planMetrics(route) }
+                VStack(alignment: .leading, spacing: 8) { planMetrics(route) }
             }
             .font(.subheadline)
             .foregroundStyle(SeruColor.muted)
-            if route.isLive && route.legs.contains(where: { $0.geometry == "straight" }) {
-                Text("Часть пути оценена по прямой. Уточните маршрут в картах.")
-                    .font(.caption)
+            returnInfo(route)
+            if route.legs.contains(where: { $0.geometry != "network" }) {
+                Text("Время и пунктир на карте — примерная оценка. Проверь пешеходный путь в Картах.")
+                    .font(.footnote)
                     .foregroundStyle(SeruColor.muted)
             }
+            Button { showingEditor = true } label: {
+                Label("Изменить остановки", systemImage: "slider.horizontal.3")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(minHeight: 44)
+            }
+            .accessibilityIdentifier("plan-edit-stops")
         }
+    }
+
+    @ViewBuilder private func planMetrics(_ route: WalkRoute) -> some View {
+        if route.duration > 0 { Label(durationLabel(route.duration), systemImage: "clock") }
+        if !route.distance.isEmpty { Label(route.distance, systemImage: "figure.walk") }
+    }
+
+    @ViewBuilder private func returnInfo(_ route: WalkRoute) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if route.returnsToStart == true {
+                Label("Возврат к старту включён\(route.returnMinutes.map { " · " + durationLabel($0) } ?? "")", systemImage: "arrow.uturn.backward")
+            } else if let minutes = route.returnMinutes {
+                if route.returnsToStart == false {
+                    Label("Обратно к старту — ещё около \(durationLabel(minutes))", systemImage: "arrow.uturn.backward")
+                    Text("С возвратом — \(durationLabel(route.duration + minutes)). Ты выбрал \(durationLabel(app.duration)).")
+                } else {
+                    Text("Обратный путь — \(durationLabel(minutes)). Уточни, включён ли он в общее время.")
+                }
+            } else if route.returnsToStart == false {
+                Text("Прогулка заканчивается у последней остановки. Обратный путь не рассчитан.")
+            } else if route.returnsToStart == nil {
+                Text("Возврат к старту не указан.")
+            }
+            if route.fitsBudget == false || route.duration > app.duration {
+                Label("План дольше выбранного времени. Убери остановку или увеличь время прогулки.", systemImage: "exclamationmark.circle")
+            } else if route.returnsToStart == false, let back = route.returnMinutes,
+                      route.duration + back > app.duration {
+                Label("С возвратом прогулка займёт больше выбранного времени.", systemImage: "exclamationmark.circle")
+            }
+        }
+        .font(.footnote)
+        .foregroundStyle(SeruColor.muted)
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityIdentifier("plan-return-info")
     }
 
     private func timeline(_ route: WalkRoute) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            if route.isLive, let initial = route.legs.first, initial.fromID == "start" {
-                Label(route.originLabel ?? "Начальная точка", systemImage: "location.fill")
-                    .font(.subheadline.weight(.medium)).foregroundStyle(SeruColor.ink)
+            Label("Старт: \(route.originLabel ?? app.origin)", systemImage: "flag.fill")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(SeruColor.ink)
+            if let initial = route.legs.first, initial.fromID == "start" {
                 Text("\(initial.travelMinutes) мин · \(walkDistanceLabel(initial.distanceMeters))")
-                    .font(.caption).foregroundStyle(SeruColor.muted).padding(.top, 6).padding(.bottom, 16)
+                    .font(.caption)
+                    .foregroundStyle(SeruColor.muted)
+                    .padding(.top, 6)
             }
             ForEach(stops(route)) { stop in
-                WalkPlanTimelineRow(
-                    stop: stop,
-                    transfer: transfer(after: stop, route: route),
-                    action: { app.showPlace(stop.place) }
-                )
+                WalkPlanTimelineRow(stop: stop, transfer: transfer(after: stop, route: route), action: { app.showPlace(stop.place) })
+                    .padding(.top, stop.number == 1 ? 16 : 0)
+            }
+            if route.returnsToStart == true {
+                Label("Возврат: \(route.originLabel ?? app.origin)", systemImage: "flag.checkered")
+                    .font(.subheadline)
+                    .foregroundStyle(SeruColor.muted)
+                    .padding(.top, 16)
             }
         }
     }
 
     private func transfer(after stop: WalkPlanStop, route: WalkRoute) -> WalkPlanTransfer? {
-        guard let nextID = stop.nextID else { return nil }
-        if !route.isLive {
-            return stop.number == 1
-                ? WalkPlanTransfer(minutes: 8, distance: "650 м")
-                : WalkPlanTransfer(minutes: 12, distance: "950 м")
-        }
-        guard let leg = route.legs.first(where: { $0.fromID == stop.id && $0.toID == nextID }),
+        guard let nextID = stop.nextID,
+              let leg = route.legs.first(where: { $0.fromID == stop.id && $0.toID == nextID }),
               leg.travelMinutes > 0 || leg.distanceMeters > 0 else { return nil }
-        return WalkPlanTransfer(
-            minutes: leg.travelMinutes,
-            distance: leg.distanceMeters > 0 ? walkDistanceLabel(leg.distanceMeters) : ""
-        )
+        return WalkPlanTransfer(minutes: leg.travelMinutes, distance: leg.distanceMeters > 0 ? walkDistanceLabel(leg.distanceMeters) : "")
     }
 
     private func audioWidget(_ route: WalkRoute) -> some View {
@@ -194,7 +200,6 @@ struct WalkPlanContent: View {
                     .font(.subheadline.weight(.medium))
                 Spacer(minLength: 8)
                 Image(systemName: audioGuide.isPlaying ? "stop.fill" : "play.fill")
-                    .font(.subheadline)
             }
             .foregroundStyle(SeruColor.ink)
             .padding(.horizontal, 16)
@@ -208,43 +213,83 @@ struct WalkPlanContent: View {
 
     private func actions(_ route: WalkRoute) -> some View {
         VStack(spacing: 10) {
-            Button {
-                app.showFullRoute(route)
-            } label: {
-                Label("Посмотреть маршрут", systemImage: "map")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(SeruColor.onAction)
-                    .padding(.horizontal, 16)
-                    .frame(maxWidth: .infinity, minHeight: 54)
-                    .background(SeruColor.action, in: .rect(cornerRadius: 16))
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("plan-route")
-            HStack(spacing: 8) { secondaryActions(route) }
+            PrimaryAction(title: "Посмотреть маршрут", symbol: "map") { app.showFullRoute(route) }
+                .accessibilityIdentifier("plan-route")
+            if let url = MapLinks.orderedWalk(origin: route.originLabel ?? app.origin, originCoordinate: route.originCoordinate,
+                    places: route.placeIDs.map { app.place(id: $0) }, returnsToStart: route.returnsToStart == true) {
+                Button {
+                    openURL(url) { accepted in if !accepted { app.toast = "Не удалось открыть карту" } }
+                } label: {
+                    Label("Весь маршрут в Apple Maps", systemImage: "arrow.up.right")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(SeruColor.ink)
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .padding(.horizontal, 12)
+                        .background(SeruColor.field, in: .rect(cornerRadius: 12))
+                }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("plan-open-full-route")
+            }
         }
     }
+}
 
-    @ViewBuilder private func secondaryActions(_ route: WalkRoute) -> some View {
-        Button {
-            guard let finalID = route.placeIDs.last else { return }
-            let finalPlace = app.place(id: finalID)
-            let url = route.isLive
-                ? LiveMapLink.url(provider: .twoGIS, destination: finalPlace.name, coordinate: finalPlace.coordinate,
-                                  origin: route.originLabel, originCoordinate: route.originCoordinate)
-                : ExternalMapProvider.twoGIS.url(destination: finalPlace.name)
-            guard let url else { return }
-            openURL(url) { accepted in
-                if !accepted { app.toast = "Не удалось открыть карту" }
+private struct PlanStopsEditor: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var places: [Place]
+    let apply: ([String]) -> Void
+
+    init(places: [Place], apply: @escaping ([String]) -> Void) {
+        _places = State(initialValue: places)
+        self.apply = apply
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    ForEach(places) { place in
+                        HStack(spacing: 8) {
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(place.name).font(.body)
+                                if place.visitMinutes > 0 {
+                                    Text("Около \(place.visitMinutes) мин на месте")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            Button(role: .destructive) { places.removeAll { $0.id == place.id } } label: {
+                                Image(systemName: "trash").font(.system(size: 17))
+                                    .frame(width: 44, height: 44)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Убрать \(place.name) из плана")
+                            .accessibilityIdentifier("plan-remove-\(place.id)")
+                        }
+                        .frame(minHeight: 44)
+                    }
+                    .onMove { places.move(fromOffsets: $0, toOffset: $1) }
+                } footer: {
+                    Text("Перетаскивай остановки за ручку справа. Время и расстояние пересчитаются примерно. Если времени не хватит, часть остановок не попадёт в план.")
+                }
+                if places.isEmpty { Text("Все остановки убраны. Можно закрыть окно, чтобы отменить изменения.") }
             }
-        } label: {
-            ItineraryActionLabel(title: "Открыть в 2ГИС", screen: "plan", index: 22)
+            .environment(\.editMode, .constant(.active))
+            .navigationTitle("Остановки")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Отмена") { dismiss() }.frame(minHeight: 44)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Готово") { apply(places.map(\.id)); dismiss() }
+                        .fontWeight(.semibold)
+                        .frame(minHeight: 44)
+                }
+            }
         }
-        Button { app.toggleSavedRoute(route) } label: {
-            ItineraryActionLabel(title: app.isRouteSaved(route) ? "Сохранено" : "Сохранить", screen: "plan", index: 23, selected: app.isRouteSaved(route))
-        }
-        .accessibilityValue(app.isRouteSaved(route) ? "Сохранено" : "Не сохранено")
-        .accessibilityIdentifier("plan-save-route")
+        .tint(SeruColor.action)
     }
 }
 

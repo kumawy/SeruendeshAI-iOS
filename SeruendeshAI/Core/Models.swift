@@ -16,7 +16,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     }
 }
 
-enum WalkScreen: Hashable {
+enum WalkScreen: Hashable, Codable {
     case home, results, detail(String), route(String), plan, chat
     var isMap: Bool { self != .chat }
 }
@@ -41,9 +41,9 @@ struct Place: Identifiable, Hashable, Codable, Sendable {
     let category: String
     let subtitle: String
     let imageAsset: String
-    let travelMinutes: Int
+    var travelMinutes: Int
     let visitMinutes: Int
-    let distance: String
+    var distance: String
     let hours: String
     let rating: String
     let reason: String
@@ -58,6 +58,10 @@ struct Place: Identifiable, Hashable, Codable, Sendable {
     var sourceURL: URL? = nil
     var websiteURL: URL? = nil
     var descriptionCredit: String? = nil
+    var address: String? = nil
+    var phone: String? = nil
+    var accessibility: String? = nil
+    var prices: [[String: APIJSONValue]]? = nil
 }
 
 struct CityEvent: Identifiable, Hashable, Codable, Sendable {
@@ -92,6 +96,9 @@ struct WalkRoute: Identifiable, Hashable, Codable, Sendable {
     var legs: [WalkLeg] = []
     var originLabel: String? = nil
     var originCoordinate: GeoPoint? = nil
+    var returnMinutes: Int? = nil
+    var returnsToStart: Bool? = nil
+    var fitsBudget: Bool? = nil
 }
 
 struct WalkLeg: Identifiable, Codable, Hashable, Sendable {
@@ -114,8 +121,8 @@ struct RoutePreview: Hashable, Sendable {
     let originLabel: String
 }
 
-struct ChatMessage: Identifiable, Equatable, Sendable {
-    enum Role: Sendable { case user, assistant }
+struct ChatMessage: Identifiable, Equatable, Codable, Sendable {
+    enum Role: String, Codable, Sendable { case user, assistant }
     let id: UUID
     let role: Role
     let text: String
@@ -123,22 +130,42 @@ struct ChatMessage: Identifiable, Equatable, Sendable {
     let attachmentData: Data?
     let placeIDs: [String]
     let routeID: String?
-    init(role: Role, text: String, showsRoute: Bool = false, attachmentData: Data? = nil,
-         placeIDs: [String] = [], routeID: String? = nil) {
-        id = UUID(); self.role = role; self.text = text; self.showsRoute = showsRoute
+    let snapshot: RecommendationSnapshot?
+    init(id: UUID = UUID(), role: Role, text: String, showsRoute: Bool = false, attachmentData: Data? = nil,
+         placeIDs: [String] = [], routeID: String? = nil, snapshot: RecommendationSnapshot? = nil) {
+        self.id = id; self.role = role; self.text = text; self.showsRoute = showsRoute
         self.attachmentData = attachmentData
-        self.placeIDs = placeIDs; self.routeID = routeID
+        self.placeIDs = placeIDs; self.routeID = routeID; self.snapshot = snapshot
     }
 }
 
 enum DemoData {
+    // Neighborhood waypoints, not surveyed entrances. OSM way centroids verified 2026-10-24.
+    // https://www.openstreetmap.org/way/1196402246 (garden), /way/37884583 (Lovers Park).
+    // Boulevard: https://yandex.com/maps/163/astana/geo/nurzhol_zhelek_zholy/24204111/
+    static let coordinates: [String: GeoPoint] = [
+        "baiterek": GeoPoint(latitude: 51.128, longitude: 71.430),
+        "garden": GeoPoint(latitude: 51.1075465, longitude: 71.4170920),
+        "park": GeoPoint(latitude: 51.1314890, longitude: 71.4092141),
+        "coffee": GeoPoint(latitude: 51.128196, longitude: 71.427878)
+    ]
+    static let landmarks: [StartLandmark] = [
+        StartLandmark(id: "baiterek", name: "Байтерек", coordinate: coordinates["baiterek"]!),
+        StartLandmark(id: "botanical_garden", name: "Ботанический сад", coordinate: coordinates["garden"]!),
+        StartLandmark(id: "nurzhol", name: "Бульвар Нуржол", coordinate: coordinates["coffee"]!),
+        StartLandmark(id: "lovers_park", name: "Парк Влюблённых", coordinate: coordinates["park"]!)
+    ]
     static let places: [Place] = [
         Place(id: "garden", name: "Ботанический сад Астаны", category: "Парк & природа", subtitle: "Есильский район · Парк & Оранжерея", imageAsset: "results-asset-001", travelMinutes: 12, visitMinutes: 35, distance: "1.4 км", hours: "До 23:00", rating: "4.9", reason: "Тихие аллеи, вечерняя подсветка мостиков и кофе у центрального входа. Хороший вариант для неспешной прогулки вдали от городского шума.", symbol: "tree.fill", isFree: true, isChildFriendly: true),
-        Place(id: "coffee", name: "Бульвар Нуржол & Кофейня Sensily", category: "Архитектура & кофе", subtitle: "Бульвар Нуржол · Кофе & Выпечка", imageAsset: "results-asset-002", travelMinutes: 6, visitMinutes: 25, distance: "650 м", hours: "До 22:00", rating: "4.8", reason: "Уютная остановка на кофе и зелёные аллеи Нуржола. Можно взять напиток с собой и продолжить прогулку по левобережью.", symbol: "cup.and.saucer.fill", isFree: false, isChildFriendly: false),
+        Place(id: "coffee", name: "Бульвар Нуржол с остановкой на кофе", category: "Архитектура & кофе", subtitle: "Пешеходный бульвар · Кофе поблизости", imageAsset: "results-asset-002", travelMinutes: 6, visitMinutes: 25, distance: "650 м", hours: "До 22:00", rating: "4.8", reason: "Уютная остановка на кофе и зелёные аллеи Нуржола. Можно взять напиток с собой и продолжить прогулку по левобережью.", symbol: "cup.and.saucer.fill", isFree: false, isChildFriendly: false),
         Place(id: "park", name: "Парк Влюблённых и вид на Хан Шатыр", category: "Панорама", subtitle: "Пешеходная зона · Вид на Хан Шатыр", imageAsset: "results-asset-003", travelMinutes: 16, visitMinutes: 30, distance: "2.1 км", hours: "Круглосуточно", rating: "4.7", reason: "Открытые виды на город, зелёные дорожки и скамейки для отдыха. Здесь приятно встретить закат и немного замедлиться.", symbol: "sun.horizon.fill", isFree: true, isChildFriendly: true),
-        Place(id: "baiterek", name: "Монумент Байтерек", category: "Символ столицы", subtitle: "Бульвар Нуржол · Площадь Байтерека", imageAsset: "plan-asset-001", travelMinutes: 0, visitMinutes: 15, distance: "Вы здесь", hours: "Часы уточняй", rating: "4.9", reason: "Начни с площади у Байтерека и посмотри на город с новой стороны. Отсюда удобно отправиться по зелёным аллеям Нуржола.", symbol: "flag.fill", isFree: true, isChildFriendly: true),
+        Place(id: "baiterek", name: "Монумент Байтерек", category: "Символ столицы", subtitle: "Бульвар Нуржол · Площадь Байтерека", imageAsset: "plan-asset-001", travelMinutes: 0, visitMinutes: 15, distance: "", hours: "Часы уточняй", rating: "4.9", reason: "Начни с площади у Байтерека и посмотри на город с новой стороны. Отсюда удобно отправиться по зелёным аллеям Нуржола.", symbol: "flag.fill", isFree: true, isChildFriendly: true),
         Place(id: "river", name: "Набережная реки Ишим (Арбат)", category: "Променад", subtitle: "Пешеходная зона · Вид на мост", imageAsset: "saved-asset-002", travelMinutes: 26, visitMinutes: 30, distance: "2.1 км", hours: "Круглосуточно", rating: "4.7", reason: "Прогулка вдоль Ишима с панорамой мостов и спокойными местами для отдыха у воды.", symbol: "water.waves", isFree: true, isChildFriendly: true)
-    ]
+    ].map { value in
+        var place = value
+        place.coordinate = coordinates[value.id]
+        return place
+    }
 
     static let routes: [WalkRoute] = [
         WalkRoute(id: "green-heart", name: "Зелёное сердце левобережья", subtitle: "Байтерек · Нуржол · Ботанический сад", duration: 90, distance: "3.2 км", placeIDs: ["baiterek", "coffee", "garden"]),

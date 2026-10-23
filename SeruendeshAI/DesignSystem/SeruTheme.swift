@@ -1,8 +1,8 @@
 import SwiftUI
 
 enum SeruColor {
-    static let background = adaptive("F5F5F5", "101010")
-    static let surface = adaptive("FFFFFF", "101010")
+    static let background = adaptive("F5F5F5", "101310")
+    static let surface = adaptive("FFFFFF", "1A201C")
     static let field = adaptive("EAF7EC", "222D26")
     static let assistantBubble = adaptive("DFEDE2", "30463A")
     static let forest = adaptive("174B3E", "335540")
@@ -62,7 +62,7 @@ struct PrimaryAction: View {
             .foregroundStyle(SeruColor.onAction)
             .background(SeruColor.action, in: RoundedRectangle(cornerRadius: 16))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SeruPressStyle())
     }
 }
 
@@ -179,7 +179,19 @@ struct SavePlaceButton: View {
                 .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: app.isSaved(place))
+        .disabled(app.account.user != nil && app.account.isShowingCachedData)
         .accessibilityLabel(app.isSaved(place) ? "Убрать из избранного" : "Сохранить место")
         .accessibilityIdentifier("save-\(place.id)")
+    }
+}
+
+private struct SeruPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.86 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: configuration.isPressed)
     }
 }

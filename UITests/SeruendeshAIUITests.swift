@@ -10,6 +10,7 @@ final class SeruendeshAIUITests: XCTestCase {
                                 "-UIPreferredContentSizeCategoryName",
                                 UIContentSizeCategory.accessibilityExtraExtraExtraLarge.rawValue]
         XCUIDevice.shared.orientation = .portrait
+        app.launchArguments += ["-seru.journal.storeID", UUID().uuidString]
         app.launch()
         defer { app.terminate() }
 
@@ -32,6 +33,7 @@ final class SeruendeshAIUITests: XCTestCase {
         try tapReachable(discover, app: app)
         XCTAssertTrue(app.tabBars.buttons["Прогулка"].isSelected)
         try openChat(app)
+        capture("chat-largest-before-layout-check", app: app)
         try verifyEmptyChatWelcome(app)
         capture("chat-welcome-largest-text", app: app)
         try tapReachable(chatInput(app), app: app)
@@ -51,6 +53,7 @@ final class SeruendeshAIUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", "light"]
         XCUIDevice.shared.orientation = .portrait
+        app.launchArguments += ["-seru.journal.storeID", UUID().uuidString]
         app.launch()
         defer { app.terminate() }
 
@@ -97,6 +100,7 @@ final class SeruendeshAIUITests: XCTestCase {
         app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", "dark",
                                 "-seru.saved.places", "()"]
         XCUIDevice.shared.orientation = .portrait
+        app.launchArguments += ["-seru.journal.storeID", UUID().uuidString]
         app.launch()
         defer { app.terminate() }
 
@@ -120,39 +124,24 @@ final class SeruendeshAIUITests: XCTestCase {
         capture("saved-discovery-keeps-chat", app: app)
     }
 
-    func testEventBookmarksRemainInEventsWhileFavoritesShowsOnlyPlaces() throws {
+    func testEventsHaveNoBookmarksAndFavoritesShowsOnlyPlaces() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", "light",
-                                "-seru.saved.places", "(garden)"]
-        XCUIDevice.shared.orientation = .portrait
+                                "-seru.saved.places", "(garden)", "-seru.journal.storeID", UUID().uuidString]
         app.launch()
         defer { app.terminate() }
-
         try requireCollapsedPanel(app)
         try tapReachable(app.tabBars.buttons["События"], app: app)
-        try tapReachable(app.buttons["event-photo-jazz"], app: app)
+        try tapReachable(app.buttons["event-detail-jazz"], app: app)
         try require(app.navigationBars["Событие"])
-        let save = app.buttons["event-save-jazz"]
-        let wasSaved = save.label == "Убрать из сохранённых"
-        if !wasSaved { try tapReachable(save, app: app) }
-        try waitForLabel("Убрать из сохранённых", on: save)
-
+        XCTAssertFalse(app.buttons["event-save-jazz"].exists)
+        XCTAssertFalse(app.buttons["Сохранить событие"].exists)
+        capture("event-without-bookmark", app: app)
         try tapReachable(app.tabBars.buttons["Избранное"], app: app)
-        try require(app.staticTexts["saved-title"])
         try require(app.buttons["saved-place-garden"])
         verifySavedShowsOnlyPlaces(app)
-        XCTAssertFalse(app.buttons["event-photo-jazz"].exists,
-                       "A saved event must not appear in the places-only Favorites screen")
         capture("saved-only-places", app: app)
-
-        try tapReachable(app.tabBars.buttons["События"], app: app)
-        try require(app.navigationBars["Событие"])
-        try waitForLabel("Убрать из сохранённых", on: app.buttons["event-save-jazz"])
-        try tapReachable(app.buttons["event-save-jazz"], app: app)
-        try waitForLabel("Сохранить событие", on: app.buttons["event-save-jazz"])
-        capture("event-bookmarks-in-events", app: app)
-        if wasSaved { try tapReachable(app.buttons["event-save-jazz"], app: app) }
     }
 
     func testSavedPlacesOpenDetailsAndRoutesAndCanBeRemoved() throws {
@@ -161,6 +150,7 @@ final class SeruendeshAIUITests: XCTestCase {
         app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", "light",
                                 "-seru.saved.places", "(garden, coffee)"]
         XCUIDevice.shared.orientation = .portrait
+        app.launchArguments += ["-seru.journal.storeID", UUID().uuidString]
         app.launch()
         defer { app.terminate() }
 
@@ -179,7 +169,7 @@ final class SeruendeshAIUITests: XCTestCase {
         try require(app.staticTexts["route-title"])
         try tapReachable(app.navigationBars.buttons["Закрыть"], app: app)
 
-        try tapReachable(app.buttons["Удалить Бульвар Нуржол & Кофейня Sensily из избранного"], app: app)
+        try tapReachable(app.buttons["Удалить Бульвар Нуржол с остановкой на кофе из избранного"], app: app)
         XCTAssertFalse(app.buttons["saved-place-coffee"].exists)
         try require(app.buttons["saved-place-garden"])
         XCTAssertFalse(app.staticTexts["saved-empty-title"].exists,
@@ -198,6 +188,7 @@ final class SeruendeshAIUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", "light", "-seru.origin", "Байтерек"]
         XCUIDevice.shared.orientation = .portrait
+        app.launchArguments += ["-seru.journal.storeID", UUID().uuidString]
         app.launch()
         defer { app.terminate() }
 
@@ -224,6 +215,7 @@ final class SeruendeshAIUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", "dark", "-seru.origin", "Байтерек"]
         XCUIDevice.shared.orientation = .portrait
+        app.launchArguments += ["-seru.journal.storeID", UUID().uuidString]
         app.launch()
         defer { app.terminate() }
 
@@ -263,6 +255,7 @@ final class SeruendeshAIUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", "dark", "-seru.origin", "Байтерек"]
         XCUIDevice.shared.orientation = .portrait
+        app.launchArguments += ["-seru.journal.storeID", UUID().uuidString]
         app.launch()
         defer { app.terminate() }
 
@@ -317,6 +310,7 @@ final class SeruendeshAIUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", "dark", "-seru.origin", "Байтерек"]
         XCUIDevice.shared.orientation = .portrait
+        app.launchArguments += ["-seru.journal.storeID", UUID().uuidString]
         app.launch()
         defer { app.terminate() }
 
@@ -366,11 +360,15 @@ final class SeruendeshAIUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["-seru.theme", "light", "-seru.origin", "Байтерек"]
         XCUIDevice.shared.orientation = .portrait
+        app.launchArguments += ["-seru.journal.storeID", UUID().uuidString]
         app.launch()
         defer { app.terminate() }
 
         try verifyCompactLaunch(app)
         capture("home-collapsed", app: app)
+        try tapReachable(app.buttons["composer-filters"], app: app)
+        try selectDuration(120, app: app)
+        try tapReachable(app.buttons["walk-settings-apply"], app: app)
 
         // Entering the compact composer opens the same draft in the expanded chat.
         let draft = "Хочу тихую прогулку рядом"
@@ -429,7 +427,7 @@ final class SeruendeshAIUITests: XCTestCase {
         try require(app.buttons["chat-options"])
 
         try openChatMenuItem("open-plan", app: app)
-        try revealHeading(app.staticTexts["Зелёное сердце левобережья"], app: app)
+        try revealHeading(app.staticTexts["Твоя прогулка"], app: app)
         capture("plan", app: app)
         try tapReachable(app.buttons["walk-back"], app: app)
         try require(app.buttons["chat-options"])
@@ -445,6 +443,7 @@ final class SeruendeshAIUITests: XCTestCase {
         app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", theme,
                                 "-seru.saved.places", "()"]
         XCUIDevice.shared.orientation = .portrait
+        app.launchArguments += ["-seru.journal.storeID", UUID().uuidString]
         app.launch()
         defer { app.terminate() }
 
@@ -490,6 +489,7 @@ final class SeruendeshAIUITests: XCTestCase {
         app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", theme,
                                 "-seru.origin", "Байтерек"]
         XCUIDevice.shared.orientation = .portrait
+        app.launchArguments += ["-seru.journal.storeID", UUID().uuidString]
         app.launch()
         defer { app.terminate() }
 
@@ -583,7 +583,7 @@ final class SeruendeshAIUITests: XCTestCase {
             try waitForValue("Наполовину", on: handle)
         }
 
-        try require(app.buttons["map-background"])
+        try require(app.descendants(matching: .any)["map-background"].firstMatch)
         let mapY = min(200, handle.frame.minY - 40)
         app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: 30, dy: mapY)).tap()
@@ -599,28 +599,33 @@ final class SeruendeshAIUITests: XCTestCase {
                     thenHoldForDuration: 0.3)
     }
 
+    private func selectDuration(_ value: Int, app: XCUIApplication) throws {
+        try tapReachable(app.buttons["walk-duration"], app: app)
+        try tapReachable(app.buttons["\(value) мин"], app: app)
+    }
+
     private func verifyWalkSettingsPreserveSelections(_ app: XCUIApplication) throws {
         try verifyNoQuickFilters(app)
         let filters = app.buttons["composer-filters"]
         try tapReachable(filters, app: app)
         try require(app.navigationBars["Условия прогулки"])
-        try tapReachable(app.segmentedControls.buttons["30 мин"], app: app)
+        try selectDuration(30, app: app)
         try setWalkFreeOnly(true, app: app)
-        try tapReachable(app.navigationBars.buttons["Применить"], app: app)
+        try tapReachable(app.buttons["walk-settings-apply"], app: app)
         try require(app.buttons["chat-options"])
 
         try tapReachable(filters, app: app)
         try require(app.navigationBars["Условия прогулки"])
-        XCTAssertTrue(app.segmentedControls.buttons["30 мин"].isSelected,
+        XCTAssertTrue(app.buttons["walk-duration"].label.contains("30 мин"),
                       "The composer settings must retain the applied duration")
         try waitForValue("1", on: walkFreeOnly(app))
-        try tapReachable(app.segmentedControls.buttons["60 мин"], app: app)
+        try selectDuration(120, app: app)
         try setWalkFreeOnly(false, app: app)
-        try tapReachable(app.navigationBars.buttons["Применить"], app: app)
+        try tapReachable(app.buttons["walk-settings-apply"], app: app)
 
         try tapReachable(filters, app: app)
         try require(app.navigationBars["Условия прогулки"])
-        XCTAssertTrue(app.segmentedControls.buttons["60 мин"].isSelected)
+        XCTAssertTrue(app.buttons["walk-duration"].label.contains("120 мин"))
         try waitForValue("0", on: walkFreeOnly(app))
         try tapReachable(app.navigationBars.buttons["Отмена"], app: app)
         try require(app.buttons["chat-options"])
@@ -668,7 +673,7 @@ final class SeruendeshAIUITests: XCTestCase {
         try require(mascot)
         try require(menu)
         try require(composer)
-        XCTAssertEqual(title.label, "Куда сегодня хотите?")
+        XCTAssertEqual(title.label, "Куда сегодня пойдём?")
         XCTAssertFalse(compactPanel(app).exists, "The empty chat must not duplicate the collapsed heading")
         XCTAssertFalse(app.staticTexts["Серу"].exists, "The central mascot replaces the left-aligned Seru row")
         XCTAssertEqual(title.frame.midX, app.frame.midX, accuracy: app.frame.width * 0.04,
@@ -678,8 +683,10 @@ final class SeruendeshAIUITests: XCTestCase {
                                  "Seru should sit above the centered question")
         XCTAssertGreaterThanOrEqual(welcome.frame.minY, menu.frame.maxY)
         XCTAssertLessThanOrEqual(welcome.frame.maxY, composer.frame.minY)
-        let availableHeight = composer.frame.minY - menu.frame.maxY
-        let center = (composer.frame.minY + menu.frame.maxY) / 2
+        let context = app.buttons["chat-current-conditions"]
+        let headingBottom = context.exists ? context.frame.maxY : menu.frame.maxY
+        let availableHeight = composer.frame.minY - headingBottom
+        let center = (composer.frame.minY + headingBottom) / 2
         XCTAssertEqual(welcome.frame.midY, center, accuracy: availableHeight / 6,
                        "The welcome content should occupy the center of the available conversation area")
         XCTAssertGreaterThan(menu.frame.midX, title.frame.midX,
@@ -707,7 +714,7 @@ final class SeruendeshAIUITests: XCTestCase {
         XCTAssertEqual(filters.label, "Фильтры прогулки")
         try tapReachable(filters, app: app)
         try require(app.navigationBars["Условия прогулки"])
-        try require(app.segmentedControls.buttons["60 мин"])
+        try require(app.buttons["walk-duration"])
         try tapReachable(app.navigationBars.buttons["Отмена"], app: app)
         try require(reply)
         try require(app.staticTexts.matching(identifier: "assistant-message").firstMatch)
@@ -737,8 +744,6 @@ final class SeruendeshAIUITests: XCTestCase {
     }
 
     private func verifyMainHeaderIsHidden(_ app: XCUIApplication) {
-        XCTAssertFalse(app.buttons["Профиль и настройки"].exists,
-                       "The app bar appears only on the main collapsed screen")
         XCTAssertFalse(app.images["brand-logo"].exists)
     }
 

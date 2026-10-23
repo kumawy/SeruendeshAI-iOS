@@ -10,44 +10,38 @@ struct RoutePreviewContent: View {
     var mascotActive: Bool = true
     var owningTab: AppTab = .walk
 
-    private var isLive: Bool { route?.isLive ?? place.isLive }
-    private var isGarden: Bool { !isLive && place.name.localizedCaseInsensitiveContains("Ботаническ") }
     private var livePreview: RoutePreview? {
         guard route == nil, app.routePreview?.placeID == place.id else { return nil }
         return app.routePreview
     }
-    private var minutes: Int {
+    private var originCoordinate: GeoPoint? { route?.originCoordinate ?? livePreview?.origin ?? app.originCoordinate }
+    private var origin: String { route?.originLabel ?? livePreview?.originLabel ?? app.origin }
+    private var destinationPlace: Place { stops.last ?? place }
+    private var stops: [Place] { route?.placeIDs.map { app.place(id: $0) } ?? [place] }
+    private var estimatedMeters: Int? {
+        guard !place.isLive, let start = originCoordinate, let end = place.coordinate else { return nil }
+        return WalkPlanner.estimatedDistance(from: start, to: end)
+    }
+    private var minutes: Int? {
         if let route { return route.duration }
-        if isLive { return livePreview?.travelMinutes ?? 0 }
-        return isGarden ? 22 : place.travelMinutes
+        if place.isLive { return livePreview?.travelMinutes }
+        return estimatedMeters.map { Int(ceil(Double($0) / 75)) }
     }
     private var distance: String {
         if let route { return route.distance }
-        if isLive {
-            guard let meters = livePreview?.distanceMeters, meters > 0 else { return "" }
-            return walkDistanceLabel(meters)
-        }
-        return isGarden ? "1.8 км" : place.distance
+        if let livePreview { return walkDistanceLabel(livePreview.distanceMeters) }
+        return estimatedMeters.map(walkDistanceLabel) ?? ""
     }
-    private var destinationPlace: Place {
-        route?.placeIDs.last.map { app.place(id: $0) } ?? place
-    }
-    private var destination: String {
-        if route != nil { return destinationPlace.name }
-        return isGarden ? "Северный вход, Ботанический сад" : place.name
-    }
-    private var origin: String {
-        if let route, route.isLive { return route.originLabel ?? "Начальная точка" }
-        if let firstID = route?.placeIDs.first { return app.place(id: firstID).name }
-        if isLive {
-            return livePreview?.originLabel ?? (app.origin.isEmpty ? "Начальная точка" : app.origin)
-        }
-        return app.origin.isEmpty ? "Монумент Байтерек" : app.origin
+    private var fullRouteURL: URL? {
+        MapLinks.orderedWalk(origin: origin, originCoordinate: originCoordinate, places: stops,
+                             returnsToStart: route?.returnsToStart == true)
     }
     private var shareText: String {
-        let details = [minutes > 0 ? "\(minutes) мин" : nil, distance.isEmpty ? nil : distance]
-            .compactMap { $0 }.joined(separator: " · ")
-        return "Пеший маршрут: \(origin) → \(destination). \(details.isEmpty ? "" : details + ". ")SeruendeshAI."
+        if let route { return MapLinks.shareRoute(route, places: stops) }
+        var single = WalkRoute(id: place.id, name: "Пеший маршрут", subtitle: "", duration: minutes ?? 0,
+                               distance: distance, placeIDs: [place.id])
+        single.originLabel = origin; single.originCoordinate = originCoordinate
+        return MapLinks.shareRoute(single, places: [place])
     }
 
     var body: some View {
@@ -60,31 +54,58 @@ struct RoutePreviewContent: View {
         .padding(.top, 8)
         .padding(.bottom, 24)
         .task(id: place.id) {
-            if isLive && route == nil {
-                await app.loadRoutePreview(for: place)
-            }
+            if place.isLive && route == nil { await app.loadRoutePreview(for: place) }
         }
-        .confirmationDialog("Открыть маршрут", isPresented: $showsMapChooser, titleVisibility: .visible) {
+        .confirmationDialog("Открыть в картах", isPresented: $showsMapChooser, titleVisibility: .visible) {
             ForEach(ExternalMapProvider.allCases) { provider in
-                Button(provider.rawValue) { openMap(provider) }
+                Button(mapActionTitle(provider)) { openMap(provider) }
             }
             Button("Отмена", role: .cancel) { }
+        } message: {
+            if route != nil { Text("Apple Maps сохранит все остановки. В других картах откроется последняя точка или путь до неё.") }
         }
     }
 
     private var overview: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Маршрут")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 10) {
+            Text(route?.name ?? "Маршрут")
+                .font(.title2.weight(.semibold))
                 .foregroundStyle(SeruColor.ink)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("route-title")
-            if isLive && route == nil {
+            if place.isLive && route == nil {
                 liveRouteStatus
-            } else {
+            } else if minutes != nil {
                 routeMetrics
+            } else {
+                Text("Время пути пока не рассчитано. Открой место в Картах и выбери старт.")
+                    .font(.subheadline)
+                    .foregroundStyle(SeruColor.muted)
+            }
+            if let route {
+                if route.returnsToStart == true {
+                    Label("С возвратом к старту", systemImage: "arrow.uturn.backward")
+                        .font(.footnote)
+                } else if let back = route.returnMinutes, route.returnsToStart == false {
+                    Text("Обратно к старту — ещё примерно \(back) мин.")
+                        .font(.footnote)
+                } else if route.returnsToStart == nil {
+                    Text("Возврат к старту не указан.").font(.footnote)
+                }
+                if route.fitsBudget == false {
+                    Label("Маршрут дольше выбранного времени", systemImage: "exclamationmark.circle")
+                        .font(.footnote)
+                }
+            }
+            if (!place.isLive && route == nil && estimatedMeters != nil) ||
+                route?.legs.contains(where: { $0.geometry != "network" }) == true {
+                Text("Пунктир на карте — примерный путь. Время оценено с запасом по расстоянию. Проверь проходы в Картах.")
+                    .font(.footnote)
+                    .foregroundStyle(SeruColor.muted)
             }
         }
+        .foregroundStyle(SeruColor.ink)
     }
 
     @ViewBuilder private var liveRouteStatus: some View {
@@ -92,13 +113,10 @@ struct RoutePreviewContent: View {
             routeLoading
         } else if let error = app.routeError, livePreview == nil {
             VStack(alignment: .leading, spacing: 12) {
-                WalkStateMascot(scene: .routeBlocked, isActive: mascotActive && !showsMapChooser,
-                                owningTab: owningTab)
+                WalkStateMascot(scene: .routeBlocked, isActive: mascotActive && !showsMapChooser, owningTab: owningTab)
                     .frame(width: 148, height: 148)
                     .frame(maxWidth: .infinity)
-                Text("Не удалось построить маршрут")
-                    .font(.headline)
-                    .foregroundStyle(SeruColor.ink)
+                Text("Не удалось построить маршрут").font(.headline)
                 Text(error)
                     .font(.subheadline)
                     .foregroundStyle(SeruColor.muted)
@@ -109,21 +127,17 @@ struct RoutePreviewContent: View {
             }
         } else if let preview = livePreview {
             routeMetrics
-            if preview.geometry == "straight" {
-                Text("Оценка по прямой. Пешеходный путь уточняйте в картах.")
-                    .font(.caption)
+            if preview.geometry != "network" {
+                Text("Путь оценён примерно. Проверь пешеходный маршрут в Картах.")
+                    .font(.footnote)
                     .foregroundStyle(SeruColor.muted)
             }
-        } else {
-            routeLoading
-        }
+        } else { routeLoading }
     }
 
     private var routeLoading: some View {
         VStack(spacing: 12) {
-            WalkStateMascot(scene: .routing,
-                            isActive: mascotActive && app.isLoadingRoute && !showsMapChooser,
-                            owningTab: owningTab)
+            WalkStateMascot(scene: .routing, isActive: mascotActive && app.isLoadingRoute && !showsMapChooser, owningTab: owningTab)
                 .frame(width: 148, height: 148)
             Text("Строим маршрут").font(.subheadline)
         }
@@ -131,70 +145,69 @@ struct RoutePreviewContent: View {
     }
 
     private var routeMetrics: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            if !isLive || minutes > 0 {
-                Text("\(minutes) мин")
-                    .font(.title.weight(.bold))
-                    .tracking(-0.4)
-                    .foregroundStyle(SeruColor.ink)
+        VStack(alignment: .leading, spacing: 4) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) { metricItems }
+                VStack(alignment: .leading, spacing: 8) { metricItems }
             }
-            if !distance.isEmpty {
-                Text("\(minutes > 0 ? "· " : "")\(distance)")
-                    .font(.title3)
-                    .foregroundStyle(SeruColor.muted)
-            }
+            if route != nil { Text("Всего, с остановками").font(.caption).foregroundStyle(SeruColor.muted) }
         }
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("route-loaded")
     }
 
-    private var waypoints: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            waypoint(name: origin, isStart: true)
-            Rectangle()
-                .fill(SeruColor.line)
-                .frame(width: 1, height: 14)
-                .padding(.leading, 5)
-                .accessibilityHidden(true)
-            waypoint(name: destination, isStart: false)
+    @ViewBuilder private var metricItems: some View {
+        if let minutes {
+            Text("\(minutes) мин")
+                .font(.title.weight(.bold))
+                .foregroundStyle(SeruColor.ink)
         }
+        if !distance.isEmpty { Text(distance).font(.title3).foregroundStyle(SeruColor.muted) }
+    }
+
+    private var waypoints: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("Старт: \(origin.isEmpty ? "не задан" : origin)", systemImage: "flag.fill")
+                .font(.subheadline.weight(.medium))
+            ForEach(Array(stops.enumerated()), id: \.element.id) { index, stop in
+                Button { app.showPlace(stop) } label: {
+                    HStack(alignment: .top, spacing: 12) {
+                        Text("\(index + 1)")
+                            .font(.caption.weight(.semibold))
+                            .frame(width: 26, height: 26)
+                            .background(SeruColor.surface, in: .circle)
+                        Text(stop.name)
+                            .font(.subheadline)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .multilineTextAlignment(.leading)
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right").font(.caption)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Остановка \(index + 1). \(stop.name)")
+                .accessibilityHint("Открыть информацию о месте")
+            }
+            if route?.returnsToStart == true {
+                Label("Возврат: \(origin)", systemImage: "flag.checkered")
+                    .font(.subheadline)
+            }
+        }
+        .foregroundStyle(SeruColor.ink)
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(SeruColor.field, in: .rect(cornerRadius: 12))
     }
 
-    private func waypoint(name: String, isStart: Bool) -> some View {
-        HStack(spacing: 12) {
-            Circle()
-                .fill(isStart ? SeruColor.surface : SeruColor.ink)
-                .frame(width: 11, height: 11)
-                .overlay(Circle().strokeBorder(SeruColor.ink, lineWidth: 1.5))
-                .accessibilityHidden(true)
-            Text(name)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(SeruColor.ink)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(isStart ? "Откуда" : "Куда"): \(name)")
-    }
-
     private var actions: some View {
         VStack(spacing: 8) {
-            Button { openMap(.twoGIS) } label: {
-                HStack(spacing: 8) {
-                    Text("Открыть в 2ГИС")
-                        .font(.body.weight(.semibold))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Image(systemName: "arrow.up.right")
-                        .font(.subheadline.weight(.semibold))
+            if fullRouteURL != nil {
+                PrimaryAction(title: route == nil ? "Пешком в Apple Maps" : "Весь маршрут в Apple Maps", symbol: "arrow.up.right") {
+                    openMap(.apple)
                 }
-                .foregroundStyle(SeruColor.onAction)
-                .padding(.horizontal, 20)
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .background(SeruColor.action, in: .rect(cornerRadius: 12))
+                .accessibilityIdentifier("route-open-apple")
             }
-            .buttonStyle(.plain)
             HStack(spacing: 8) {
                 Button { showsMapChooser = true } label: {
                     Label("Другие карты", systemImage: "map")
@@ -212,23 +225,20 @@ struct RoutePreviewContent: View {
         }
     }
 
+    private func mapActionTitle(_ provider: ExternalMapProvider) -> String {
+        if provider == .apple, fullRouteURL != nil {
+            return route == nil ? "Пешком в Apple Maps" : "Весь маршрут в Apple Maps"
+        }
+        let hasRoute = originCoordinate?.isValid == true && destinationPlace.coordinate?.isValid == true
+        if provider == .twoGIS, route != nil, hasRoute { return "До последней остановки в 2ГИС" }
+        return provider.actionTitle(hasRoute: hasRoute)
+    }
+
     private func openMap(_ provider: ExternalMapProvider) {
-        let url: URL?
-        if isLive {
-            let originCoordinate = route?.originCoordinate ?? livePreview?.origin
-            url = LiveMapLink.url(
-                provider: provider,
-                destination: destinationPlace.name,
-                coordinate: destinationPlace.coordinate,
-                origin: origin,
-                originCoordinate: originCoordinate
-            )
-        } else {
-            url = provider.url(destination: destinationPlace.name, origin: origin + ", Астана")
-        }
-        guard let url else { return }
-        openURL(url) { accepted in
-            if !accepted { app.toast = "Не удалось открыть карту" }
-        }
+        let link = provider == .apple ? fullRouteURL ?? MapLinks.place(provider: .apple, destination: destinationPlace.name, coordinate: destinationPlace.coordinate)
+            : MapLinks.destinationRoute(provider: provider, destination: destinationPlace.name, coordinate: destinationPlace.coordinate,
+                                        origin: origin, originCoordinate: originCoordinate)
+        guard let link else { app.toast = "Для этого места пока нет данных карты"; return }
+        openURL(link) { accepted in if !accepted { app.toast = "Не удалось открыть карту" } }
     }
 }

@@ -1,87 +1,89 @@
 import SwiftUI
+import UIKit
 
 struct SeruSplashOverlay: View {
     let coordinator: SplashCoordinator
-    let safeArea: EdgeInsets
-    let dark: Bool
+    let artwork: UIImage?
 
     var body: some View {
         GeometryReader { geometry in
-            let size = geometry.size
-            let center = CGPoint(x: (safeArea.leading + size.width - safeArea.trailing) / 2,
-                                 y: (safeArea.top + size.height - safeArea.bottom) / 2)
-            let timing = coordinator.timing
-            let available = max(100, size.height - safeArea.top - safeArea.bottom)
-            // Content occupies y=59…705 in the authored 768px padded canvas.
-            let side = min(timing.mascotContentHeight, available * 0.52) / (646.0 / 768.0)
             ZStack {
-                SplashTransitionView(phase: coordinator.phase, size: size, center: center,
-                                     background: Color(hex: dark ? "101010" : "F5F5F5"),
-                                     fill: Color(hex: dark ? "263A31" : "174B3E"),
-                                     dotDiameter: timing.dotDiameter,
-                                     spiralProgress: coordinator.spiralProgress,
-                                     expansionProgress: coordinator.expansionProgress,
-                                     revealProgress: coordinator.revealProgress,
-                                     shortFade: coordinator.isShortFade)
-                if ([.preparing, .wave, .spiral].contains(coordinator.phase) || coordinator.isShortFade), let image = coordinator.player.image {
-                    SpiralCollapseView(image: image, progress: coordinator.spiralProgress,
-                                       side: side, strength: timing.spiralStrength, usesMetal: coordinator.usesMetal)
-                        .opacity(coordinator.isShortFade ? 1 - coordinator.revealProgress : 1)
-                        .position(center)
+                SeruColor.background.ignoresSafeArea()
+                if let artwork {
+                    Image(uiImage: artwork)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: min(236, geometry.size.width * 0.58),
+                               height: min(236, geometry.size.height * 0.6))
+                        .scaleEffect(coordinator.usesReducedMotion || coordinator.phase != .preparing ? 1 : 0.985)
+                        .animation(coordinator.usesReducedMotion ? nil : .easeOut(duration: 0.26),
+                                   value: coordinator.phase == .preparing)
+                        .accessibilityHidden(true)
                 }
-                #if DEBUG
-                Color.clear.frame(width: 1, height: 1)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Состояние заставки")
-                    .accessibilityValue(coordinator.phase.rawValue)
-                    .accessibilityIdentifier("seru-splash-phase")
-                #endif
             }
-            .contentShape(Rectangle())
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .opacity(1 - coordinator.revealProgress)
+            .animation(.easeOut(duration: coordinator.fadeDuration), value: coordinator.revealProgress)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Серу")
             .accessibilityIdentifier("seru-splash-overlay")
         }
     }
 }
 
-/// Owns only launch presentation. The existing content stays at the same tree
-/// position for the entire process, retaining navigation and async bootstrap.
+/// Launch presentation is an overlay on one continuously mounted root, so a
+/// quick handoff keeps navigation, incoming links, and bootstrap tasks intact.
 struct SeruSplashContainer<Content: View>: View {
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     @State private var coordinator = SplashCoordinator()
-    @State private var launchIsDark: Bool?
+    @State private var artwork = SplashArtwork.load()
     @ViewBuilder let content: Content
 
     var body: some View {
-        GeometryReader { geometry in
-            content
-                .environment(\.seruSplashIsPresented, !coordinator.isComplete)
-                .blur(radius: coordinator.isComplete ? 0 : (1 - coordinator.revealProgress) * coordinator.timing.revealBlur)
-                .opacity(coordinator.isComplete ? 1 : 0.88 + 0.12 * coordinator.revealProgress)
-                .allowsHitTesting(coordinator.isComplete)
-                .accessibilityHidden(!coordinator.isComplete)
-                .accessibilityElement(children: .contain)
-                .accessibilityIdentifier("seru-main-content")
-                .overlay {
-                    if !coordinator.isComplete {
-                        SeruSplashOverlay(coordinator: coordinator, safeArea: geometry.safeAreaInsets,
-                                          dark: launchIsDark ?? (colorScheme == .dark))
-                            .ignoresSafeArea()
-                    }
+        content
+            .environment(\.seruSplashIsPresented, !coordinator.isComplete)
+            .allowsHitTesting(coordinator.isComplete)
+            .accessibilityHidden(!coordinator.isComplete)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("seru-main-content")
+            .overlay {
+                if !coordinator.isComplete {
+                    SeruSplashOverlay(coordinator: coordinator, artwork: artwork)
                 }
-        }
-        .background(SeruColor.background.ignoresSafeArea())
-        .task {
-            launchIsDark = colorScheme == .dark
-            #if DEBUG
-            let forced = UserDefaults.standard.bool(forKey: "seru.splash.reduceMotion")
-            #else
-            let forced = false
-            #endif
-            coordinator.start(reduceMotion: reduceMotion || forced)
-        }
-        .onChange(of: reduceMotion) { _, enabled in if enabled { coordinator.reduceMotionChanged() } }
-        .onDisappear { coordinator.cancel() }
+            }
+            .background(SeruColor.background.ignoresSafeArea())
+            .task {
+                #if DEBUG
+                let forced = UserDefaults.standard.bool(forKey: "seru.splash.reduceMotion")
+                #else
+                let forced = false
+                #endif
+                coordinator.start(reduceMotion: reduceMotion || forced, artworkAvailable: artwork != nil)
+            }
+            .onChange(of: reduceMotion) { _, enabled in
+                if enabled { coordinator.reduceMotionChanged() }
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .background { coordinator.cancel() }
+            }
+            .onChange(of: coordinator.isComplete) { _, complete in
+                if complete { artwork = nil }
+            }
+            .onDisappear { coordinator.cancel() }
+    }
+}
+
+@MainActor
+private enum SplashArtwork {
+    static func load() -> UIImage? {
+        guard !SplashSessionGate.shared.hasStarted else { return nil }
+        #if DEBUG
+        if UserDefaults.standard.bool(forKey: "seru.splash.missingAssets") { return nil }
+        #endif
+        // The asset catalog caches one existing image. No PNG sequence, shader,
+        // frame predecode, or asynchronous resource preparation delays launch.
+        return UIImage(named: "SeruMascot")
     }
 }
 

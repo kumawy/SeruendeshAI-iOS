@@ -126,7 +126,7 @@ final class AccountUITests: XCTestCase {
         try tap(app.buttons["account-mode-login"], in: app)
         try tap(app.buttons["account-forgot-password"], in: app)
         try require(app.staticTexts[
-            "Восстановление по почте временно недоступно. Если ссылка у вас уже есть, используйте её ниже."
+            "Восстановление по почте временно недоступно. Если ссылка у тебя уже есть, используй её ниже."
         ], timeout: 30, in: app)
         XCTAssertFalse(app.buttons["account-submit"].isEnabled)
         capture("account-recovery-unavailable-dark", app: app)

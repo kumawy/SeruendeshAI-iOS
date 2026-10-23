@@ -39,10 +39,10 @@ struct AccountView: View {
         case name, email, password, confirmation, token
     }
 
-    init(resetToken: String? = nil) {
+    init(resetToken: String? = nil, requestReset: Bool = false) {
         // A supplied token seeds this form once; edits remain local to the sheet.
         _resetToken = State(initialValue: resetToken ?? "")
-        _mode = State(initialValue: resetToken == nil ? .signIn : .confirmReset)
+        _mode = State(initialValue: resetToken != nil ? .confirmReset : (requestReset ? .requestReset : .signIn))
     }
 
     var body: some View {
@@ -134,7 +134,7 @@ struct AccountView: View {
                     }
                     .accessibilityIdentifier("account-password")
                 if mode == .register || mode == .confirmReset {
-                    SecureField("Повторите пароль", text: $passwordConfirmation)
+                    SecureField("Повтори пароль", text: $passwordConfirmation)
                         .textContentType(.newPassword)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -150,7 +150,7 @@ struct AccountView: View {
                 Text("Не менее 8 символов.")
             case .requestReset:
                 Text(recoveryUnavailable
-                     ? "Восстановление по почте временно недоступно. Если ссылка у вас уже есть, используйте её ниже."
+                     ? "Восстановление по почте временно недоступно. Если ссылка у тебя уже есть, используй её ниже."
                      : "Пришлём ссылку для нового пароля, если эта почта зарегистрирована.")
             case .signIn:
                 EmptyView()
@@ -259,17 +259,17 @@ struct AccountView: View {
     private func validate() -> String? {
         if mode == .register {
             let count = name.trimmingCharacters(in: .whitespacesAndNewlines).count
-            if !(2...80).contains(count) { return "Введите имя от 2 до 80 символов." }
+            if !(2...80).contains(count) { return "Введи имя от 2 до 80 символов." }
         }
         if mode != .confirmReset {
             let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
             let parts = cleanEmail.split(separator: "@", omittingEmptySubsequences: false)
             if parts.count != 2 || parts.contains(where: \.isEmpty) || cleanEmail.contains(where: \.isWhitespace) {
-                return "Введите почту в формате name@example.com."
+                return "Введи почту в формате name@example.com."
             }
         }
-        if mode == .confirmReset, normalizedToken == nil { return "Вставьте код или ссылку из письма Серу." }
-        if mode == .signIn, password.isEmpty { return "Введите пароль." }
+        if mode == .confirmReset, normalizedToken == nil { return "Вставь код или ссылку из письма Серу." }
+        if mode == .signIn, password.isEmpty { return "Введи пароль." }
         if mode == .register || mode == .confirmReset {
             if password.count < 8 { return "В пароле должно быть не менее 8 символов." }
             if password != passwordConfirmation { return "Пароли не совпадают." }

@@ -618,9 +618,9 @@ struct APIRoute: Decodable, Hashable, Sendable {
     let order: [String]
     let legs: [APIRouteLeg]
     let totalMin: Int
-    let backMin: Int
-    let fitsBudget: Bool
-    let returnsToStart: Bool
+    let backMin: Int?
+    let fitsBudget: Bool?
+    let returnsToStart: Bool?
     let summary: String
     enum CodingKeys: String, CodingKey {
         case order
@@ -638,9 +638,9 @@ extension APIRoute {
         order = try c.value(.order, default: [])
         legs = try c.value(.legs, default: [])
         totalMin = try c.value(.totalMin, default: 0)
-        backMin = try c.value(.backMin, default: 0)
-        fitsBudget = try c.value(.fitsBudget, default: false)
-        returnsToStart = try c.value(.returnsToStart, default: false)
+        backMin = try c.optional(.backMin)
+        fitsBudget = try c.optional(.fitsBudget)
+        returnsToStart = try c.optional(.returnsToStart)
         summary = try c.value(.summary, default: "")
     }
 }

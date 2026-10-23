@@ -15,7 +15,18 @@ struct WalkSettingsView: View {
     @State private var withKids = false
     @State private var address = ""
     private var landmarks: [String] {
-        app.usesBackend ? app.landmarks.map(\.name) : ["Байтерек", "Ботанический сад", "Хан Шатыр", "ЭКСПО", "Mega Silk Way", "Набережная Ишима"]
+        app.landmarks.map(\.name)
+    }
+    private var durations: [Int] {
+        Array(Set(Array(stride(from: 15, through: 240, by: 15)) + [app.duration])).sorted()
+    }
+    private var selectedOrigin: String {
+        let custom = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        return custom.isEmpty ? origin : custom
+    }
+    private var canApply: Bool { app.usesBackend || landmarks.contains(selectedOrigin) }
+    private var summary: String {
+        ([selectedOrigin, "до \(duration) мин"] + (withKids ? ["с ребёнком"] : []) + (onlyFree ? ["бесплатные места"] : [])).joined(separator: " · ")
     }
 
     var body: some View {
@@ -29,25 +40,28 @@ struct WalkSettingsView: View {
                                 address = ""
                             } label: {
                                 HStack {
-                                    Label(landmark, systemImage: "mappin.circle")
+                                    SeruMenuLabel(title: landmark, symbol: "mappin.circle")
                                     Spacer()
-                                    if origin == landmark { Image(systemName: "checkmark").foregroundStyle(SeruColor.action) }
-                                }.foregroundStyle(SeruColor.ink)
+                                    if origin == landmark && address.isEmpty {
+                                        Image(systemName: "checkmark").font(.system(size: 17)).foregroundStyle(SeruColor.action)
+                                    }
+                                }
+                                .frame(minHeight: 44)
+                                .foregroundStyle(SeruColor.ink)
                             }
+                            .accessibilityAddTraits(origin == landmark && address.isEmpty ? .isSelected : [])
                         }
                     }
-                    Section {
+                    Section("Или укажи свой адрес") {
                         TextField("Адрес или ориентир в Астане", text: $address)
-                    } header: {
-                        Text("Или укажи свой адрес")
                     }
                 } else {
                     Section("Сколько времени есть?") {
                         Picker("Длительность", selection: $duration) {
-                            Text("30 мин").tag(30)
-                            Text("60 мин").tag(60)
-                            Text("120 мин").tag(120)
-                        }.pickerStyle(.segmented)
+                            ForEach(durations, id: \.self) { Text("\($0) мин").tag($0) }
+                        }
+                        .pickerStyle(.menu)
+                        .accessibilityIdentifier("walk-duration")
                     }
                     Section("Пожелания") {
                         Toggle("С ребёнком", isOn: $withKids)
@@ -64,6 +78,18 @@ struct WalkSettingsView: View {
                         TextField("Адрес или ориентир в Астане", text: $address)
                     }
                 }
+                Section {
+                    Text(kind == .origin ? "Начнём от \(selectedOrigin)." : summary)
+                        .font(.subheadline)
+                        .foregroundStyle(SeruColor.muted)
+                        .accessibilityIdentifier("walk-settings-summary")
+                } footer: {
+                    if !canApply {
+                        Text("Для расчёта выбери ориентир из списка.")
+                    } else if kind == .filters && app.isResponding {
+                        Text("Новые условия отменят текущий подбор. Его можно повторить с выбранными условиями.")
+                    }
+                }
             }
             .scrollContentBackground(.hidden)
             .background(SeruColor.background)
@@ -71,12 +97,12 @@ struct WalkSettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Отмена") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Применить", systemImage: "checkmark") { apply() }
-                }
             }
             .safeAreaInset(edge: .bottom) {
-                PrimaryAction(title: kind == .origin ? "Начать отсюда" : app.screen == .chat ? "Применить" : "Показать места") { apply() }
+                PrimaryAction(title: kind == .origin ? "Начать отсюда" : "Применить") { apply() }
+                    .disabled(!canApply)
+                    .opacity(canApply ? 1 : 0.5)
+                    .accessibilityIdentifier("walk-settings-apply")
                     .padding(16).background(.bar)
             }
         }
@@ -86,10 +112,12 @@ struct WalkSettingsView: View {
 
     private func apply() {
         if kind == .origin {
-            app.saveOrigin(address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? origin : address.trimmingCharacters(in: .whitespacesAndNewlines))
+            app.saveOrigin(selectedOrigin)
         } else {
-            app.duration = duration; app.onlyFree = onlyFree; app.withKids = withKids
-            app.saveOrigin(address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? origin : address.trimmingCharacters(in: .whitespacesAndNewlines))
+            app.duration = duration
+            app.onlyFree = onlyFree
+            app.withKids = withKids
+            app.saveOrigin(selectedOrigin)
             if app.screen != .chat { app.showResults() }
         }
         dismiss()

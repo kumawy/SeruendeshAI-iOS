@@ -10,34 +10,36 @@
 		03384E93DC854EACF5AA22AE /* WalkPlanContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECBE1D494BF968B99EC5D6AF /* WalkPlanContent.swift */; };
 		0B53DEED66111EC0703C8AA9 /* AppAccountIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 063783F9AA2F7A7AEF176C81 /* AppAccountIntegrationTests.swift */; };
 		0B954B6E8678B93EC121DE48 /* AccountAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2541850AD3D90521441432F5 /* AccountAPI.swift */; };
+		0DCE922CE3FA2C20E841FB4F /* WalkJournal.swift in Sources */ = {isa = PBXBuildFile; fileRef = EABA6E7A0D87803ECB6872E4 /* WalkJournal.swift */; };
 		0E55540D66B416E9EF21DDEF /* AccountAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5714D0C4C28DE954FA77626 /* AccountAPITests.swift */; };
-		127C68E1A07631D262591CCF /* SplashCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58D2388C36F69262489C9FAD /* SplashCoordinator.swift */; };
 		1894F33DC763E75BFCE50090 /* ItineraryComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F96F3A4C41D8E3B3F5BBCC4 /* ItineraryComponents.swift */; };
-		1F59008EF04970D852DAF5DE /* MascotFramePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E5AD7169D83FC6551681EA9 /* MascotFramePlayer.swift */; };
+		1FA5EAB8D24384F4D57298B2 /* ChatPhotoViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B0195601474843036FCF4D /* ChatPhotoViewer.swift */; };
 		2650802FF27F44101E058909 /* SeruMascotAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B859E8AA234A6FD0618966B2 /* SeruMascotAnimation.swift */; };
 		2C47861AB154675EC8C9C16F /* SeruSplashOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E89BFB0534D3501309EC3F7 /* SeruSplashOverlay.swift */; };
-		30BCC93843C2004F63A21B17 /* MascotFramePlayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCA22E4CC07071F3D441A423 /* MascotFramePlayerTests.swift */; };
 		32F087522EE706786DBD7B0E /* AppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F30CE2A77707B7187425038 /* AppRootView.swift */; };
 		3705AD361527250646BD3E89 /* MascotFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74259EC1645C09035322FB75 /* MascotFeedback.swift */; };
 		38B35870C41231A93483D878 /* PasswordResetLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A68AF9D67277FB48CC3354E /* PasswordResetLinkTests.swift */; };
 		3E882F66F39415FB768394FB /* AccountUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 076259A1D1E54A4C9939720B /* AccountUITests.swift */; };
 		401879A0A961ABC66C45AA45 /* EventsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1860833D955851C65C9E607F /* EventsView.swift */; };
 		4808DD295E1A0770832450E5 /* MascotFeedbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C5AA5AD0A228A2D95C4E81 /* MascotFeedbackTests.swift */; };
+		493047239F6CCC095D694D87 /* WalkRecoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA426DCCFD459F52746D5CE5 /* WalkRecoveryTests.swift */; };
 		4954AD73C3F6DA4CAB3EE0A6 /* SeruMascotAnimationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C15CC8908D862EC101AF38 /* SeruMascotAnimationTests.swift */; };
+		4E564B4D92A9F53A918CCD44 /* UXRefinementUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E60B24B3C0DBFCF6ED7361 /* UXRefinementUITests.swift */; };
 		50E4C5AB0E3DA0F90A051A1A /* ChatComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 838961CABFD98288D47EE271 /* ChatComposer.swift */; };
-		581485DC925FC20ADF273DC0 /* SpiralCollapse.metal in Sources */ = {isa = PBXBuildFile; fileRef = 411F0E51C3F80372CCDBC3E9 /* SpiralCollapse.metal */; };
+		51A0A9BB506ACB9D1B381FD5 /* EventPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A3DB400BFDE08DF3A3E0CC3 /* EventPresentationTests.swift */; };
 		61A9D566159468DE22FAEAA8 /* ChatScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547E9AD72257B2D79B70A6E9 /* ChatScreen.swift */; };
+		629F557978112EFAE825671E /* EventCalendarEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 362F3EC8929EE76B61314FC1 /* EventCalendarEditor.swift */; };
 		692A9E671E8C1D2D7C3168FF /* SplashModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 407BAE7B9A61B1B98A64E886 /* SplashModelTests.swift */; };
 		6A53679BC80705B95844006B /* SavedMascotUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BC578A6214491E9E59248A5 /* SavedMascotUITests.swift */; };
-		6EE008465887E54A86CE7B4A /* SpiralCollapseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF64F322F681E7626222D3C3 /* SpiralCollapseView.swift */; };
+		738739F8860917FB73DA3596 /* MapLinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1AF3A0A73B7FC8DA4867FD7 /* MapLinks.swift */; };
 		745BBAF1CC612B7B6CEE261B /* BackendIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F90053E191B77412585A5FC /* BackendIntegrationTests.swift */; };
 		754B09A7D158D8B670488BCE /* SeruTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7642BEBDCDDD72F61920090 /* SeruTheme.swift */; };
 		76713FB0491D76B20EB008BE /* PlaceDetailContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32D89D96032D8F788F945699 /* PlaceDetailContent.swift */; };
 		7767A49AA1B5BFBDD6DD0F6A /* BackendAPITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A50CA11CDF9E715A9037A32 /* BackendAPITests.swift */; };
 		788410D9A906F614328DEE04 /* BackendAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B09E3A7C5AC875F107F69867 /* BackendAPI.swift */; };
-		78B2D505AD92629CC8DFB875 /* SplashTransitionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDCD65D71D47161F14AA8AF3 /* SplashTransitionView.swift */; };
 		7AF3C5B704912E80DD122D23 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEABE2CF430D20451944C842 /* AccountView.swift */; };
 		7B06600D47B61DB208BC54B0 /* EventsEmptyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD08A54B4177A386EF24A05D /* EventsEmptyState.swift */; };
+		7D1850C34B7B3EFE640CCA68 /* SeruMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4566A12DF32640B89DEF46 /* SeruMotion.swift */; };
 		7E3AA850DCFE37FEA12D5A9F /* SessionCookieVault.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3A486C89282DA3E7A198D62 /* SessionCookieVault.swift */; };
 		848709C24BCA31D9DC4E35FF /* WalkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B556D63D83F58829BCEACF0C /* WalkView.swift */; };
 		85BB1F28E1BA4C0C90E751CD /* BackendMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CBA86C65BA85A6B61D6B73F /* BackendMapping.swift */; };
@@ -47,10 +49,12 @@
 		9D7E48D100062EE0C30C421D /* SavedEventsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D65F74A9A304D1A89415FB8 /* SavedEventsTests.swift */; };
 		9DF158F5AAE209C980FE88F2 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B055E000BB6AF4D72B65614 /* Models.swift */; };
 		A0590D3D4EF48E0CDD66FEE0 /* EventsEmptyStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39788E555A8A98308D3B522A /* EventsEmptyStateTests.swift */; };
+		A1A41B8301C7A80D6928327C /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7904AEB16E0DB7EC09E4361B /* JournalView.swift */; };
 		AAF3177B6B9223EA16738F96 /* MascotStatesUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBFC272DD9CB520ECB3384C5 /* MascotStatesUITests.swift */; };
 		B36526EC23A7CFA8AD88A1D3 /* AccountStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2C3BBDFA16051BC8ADC15E /* AccountStore.swift */; };
 		B58546C03EAED1D3019879C1 /* PasswordResetLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D719AFDDA7C0CF947FBB34C /* PasswordResetLink.swift */; };
 		BA93D6873FAB7F1D7E9E929D /* LiveMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEC1D7F472F5C0434172BD06 /* LiveMapView.swift */; };
+		C26B2D88F3856D17720BC67D /* EventPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A2DAA3125ACE495FB084BAD /* EventPresentation.swift */; };
 		C8C9E0F8EC135476835297A7 /* SplashCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB7A20381414321C4A130F8E /* SplashCoordinatorTests.swift */; };
 		CA21486050F5DA2B83B3154A /* RoutePreviewContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98124DE3AC7E9DA2B199D10C /* RoutePreviewContent.swift */; };
 		CAF50DD610BEE803B305CB4A /* SeruSplash in Resources */ = {isa = PBXBuildFile; fileRef = 553AA283B4CADB6A281D1B69 /* SeruSplash */; };
@@ -67,6 +71,8 @@
 		EE3C63E06CA579EEA0318F1C /* SplashModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F502126BDC193A26E31C69E /* SplashModel.swift */; };
 		EEB542709A0004F2AE17F0BE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 001BA35976B0BE59304F078F /* Assets.xcassets */; };
 		F3384842647A01373ABA432A /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 485CD1310C9BBBCC0A3BBDED /* AppModelTests.swift */; };
+		F3948997E5C4B215EBE9E35C /* ChatPhotoProcessingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0054CC8E056E6FC42059A002 /* ChatPhotoProcessingTests.swift */; };
+		F741EA71A785BD71DA56F6E9 /* MapLinksTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49FB43F9B3873328D2EC77E7 /* MapLinksTests.swift */; };
 		F9662D09ADFB524BAE45A008 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DAB5560F1F68E22BCABCECA /* AppModel.swift */; };
 		FF27B7F14F0DE98E2A6952D8 /* AccountStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89641377F5D19111757686F2 /* AccountStoreTests.swift */; };
 /* End PBXBuildFile section */
@@ -90,8 +96,10 @@
 
 /* Begin PBXFileReference section */
 		001BA35976B0BE59304F078F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0054CC8E056E6FC42059A002 /* ChatPhotoProcessingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatPhotoProcessingTests.swift; sourceTree = "<group>"; };
 		063783F9AA2F7A7AEF176C81 /* AppAccountIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAccountIntegrationTests.swift; sourceTree = "<group>"; };
 		076259A1D1E54A4C9939720B /* AccountUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountUITests.swift; sourceTree = "<group>"; };
+		0A3DB400BFDE08DF3A3E0CC3 /* EventPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventPresentationTests.swift; sourceTree = "<group>"; };
 		0BC578A6214491E9E59248A5 /* SavedMascotUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMascotUITests.swift; sourceTree = "<group>"; };
 		0E89BFB0534D3501309EC3F7 /* SeruSplashOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeruSplashOverlay.swift; sourceTree = "<group>"; };
 		16C5AA5AD0A228A2D95C4E81 /* MascotFeedbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotFeedbackTests.swift; sourceTree = "<group>"; };
@@ -102,25 +110,27 @@
 		2B055E000BB6AF4D72B65614 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		322F1B6C9C7EF32E7175E2A8 /* LiveServerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveServerUITests.swift; sourceTree = "<group>"; };
 		32D89D96032D8F788F945699 /* PlaceDetailContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceDetailContent.swift; sourceTree = "<group>"; };
+		362F3EC8929EE76B61314FC1 /* EventCalendarEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventCalendarEditor.swift; sourceTree = "<group>"; };
 		39788E555A8A98308D3B522A /* EventsEmptyStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsEmptyStateTests.swift; sourceTree = "<group>"; };
 		3A50CA11CDF9E715A9037A32 /* BackendAPITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendAPITests.swift; sourceTree = "<group>"; };
 		3AEC2F1C17D57077DEEFE9D3 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
-		3E5AD7169D83FC6551681EA9 /* MascotFramePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotFramePlayer.swift; sourceTree = "<group>"; };
 		407BAE7B9A61B1B98A64E886 /* SplashModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashModelTests.swift; sourceTree = "<group>"; };
-		411F0E51C3F80372CCDBC3E9 /* SpiralCollapse.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = SpiralCollapse.metal; sourceTree = "<group>"; };
 		485CD1310C9BBBCC0A3BBDED /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
+		49FB43F9B3873328D2EC77E7 /* MapLinksTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapLinksTests.swift; sourceTree = "<group>"; };
+		4C4566A12DF32640B89DEF46 /* SeruMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeruMotion.swift; sourceTree = "<group>"; };
 		4D65F74A9A304D1A89415FB8 /* SavedEventsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedEventsTests.swift; sourceTree = "<group>"; };
 		4DAB5560F1F68E22BCABCECA /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		547E9AD72257B2D79B70A6E9 /* ChatScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatScreen.swift; sourceTree = "<group>"; };
 		553AA283B4CADB6A281D1B69 /* SeruSplash */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SeruSplash; path = SeruendeshAI/Resources/SeruSplash; sourceTree = SOURCE_ROOT; };
-		58D2388C36F69262489C9FAD /* SplashCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashCoordinator.swift; sourceTree = "<group>"; };
 		5D4A3D2C99880470DFE04728 /* SavedMascotAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMascotAnimation.swift; sourceTree = "<group>"; };
 		5F30CE2A77707B7187425038 /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
 		5F502126BDC193A26E31C69E /* SplashModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashModel.swift; sourceTree = "<group>"; };
 		67736BCE6E84335CF1FE7F3C /* SeruendeshAIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeruendeshAIApp.swift; sourceTree = "<group>"; };
+		6A2DAA3125ACE495FB084BAD /* EventPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventPresentation.swift; sourceTree = "<group>"; };
 		6CBA86C65BA85A6B61D6B73F /* BackendMapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendMapping.swift; sourceTree = "<group>"; };
 		6D719AFDDA7C0CF947FBB34C /* PasswordResetLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordResetLink.swift; sourceTree = "<group>"; };
 		74259EC1645C09035322FB75 /* MascotFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotFeedback.swift; sourceTree = "<group>"; };
+		7904AEB16E0DB7EC09E4361B /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
 		7A53C3501324C5AA1FB79D36 /* SeruendeshAIUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeruendeshAIUITests.swift; sourceTree = "<group>"; };
 		7F90053E191B77412585A5FC /* BackendIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendIntegrationTests.swift; sourceTree = "<group>"; };
 		7F96F3A4C41D8E3B3F5BBCC4 /* ItineraryComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryComponents.swift; sourceTree = "<group>"; };
@@ -136,25 +146,27 @@
 		AD2C3BBDFA16051BC8ADC15E /* AccountStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountStore.swift; sourceTree = "<group>"; };
 		B09E3A7C5AC875F107F69867 /* BackendAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendAPI.swift; sourceTree = "<group>"; };
 		B0E1D4B3EF96F25D931CB593 /* SavedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedView.swift; sourceTree = "<group>"; };
+		B1AF3A0A73B7FC8DA4867FD7 /* MapLinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapLinks.swift; sourceTree = "<group>"; };
 		B556D63D83F58829BCEACF0C /* WalkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkView.swift; sourceTree = "<group>"; };
+		B5B0195601474843036FCF4D /* ChatPhotoViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatPhotoViewer.swift; sourceTree = "<group>"; };
 		B6A7955E6A99743EB8B7CAE6 /* LivePresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePresentationTests.swift; sourceTree = "<group>"; };
 		B859E8AA234A6FD0618966B2 /* SeruMascotAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeruMascotAnimation.swift; sourceTree = "<group>"; };
+		BA426DCCFD459F52746D5CE5 /* WalkRecoveryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkRecoveryTests.swift; sourceTree = "<group>"; };
 		BB7A20381414321C4A130F8E /* SplashCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashCoordinatorTests.swift; sourceTree = "<group>"; };
 		BBFC272DD9CB520ECB3384C5 /* MascotStatesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotStatesUITests.swift; sourceTree = "<group>"; };
 		BE918F3C23CBD31D7ED134CD /* ChatAttachmentLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatAttachmentLoader.swift; sourceTree = "<group>"; };
 		BEC1D7F472F5C0434172BD06 /* LiveMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMapView.swift; sourceTree = "<group>"; };
 		CD08A54B4177A386EF24A05D /* EventsEmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsEmptyState.swift; sourceTree = "<group>"; };
 		D5714D0C4C28DE954FA77626 /* AccountAPITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountAPITests.swift; sourceTree = "<group>"; };
+		D6E60B24B3C0DBFCF6ED7361 /* UXRefinementUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UXRefinementUITests.swift; sourceTree = "<group>"; };
 		D776DD64F5088C8E8AE5CBDC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DEABE2CF430D20451944C842 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
-		DF64F322F681E7626222D3C3 /* SpiralCollapseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiralCollapseView.swift; sourceTree = "<group>"; };
 		E3A486C89282DA3E7A198D62 /* SessionCookieVault.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCookieVault.swift; sourceTree = "<group>"; };
 		E430655871DA7F19917B76B8 /* SplashUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashUITests.swift; sourceTree = "<group>"; };
+		EABA6E7A0D87803ECB6872E4 /* WalkJournal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkJournal.swift; sourceTree = "<group>"; };
 		ECBE1D494BF968B99EC5D6AF /* WalkPlanContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkPlanContent.swift; sourceTree = "<group>"; };
 		EEA8E8927643D996FDF865EC /* SeruMotion */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SeruMotion; path = SeruendeshAI/Resources/SeruMotion; sourceTree = SOURCE_ROOT; };
 		F4C15CC8908D862EC101AF38 /* SeruMascotAnimationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeruMascotAnimationTests.swift; sourceTree = "<group>"; };
-		FCA22E4CC07071F3D441A423 /* MascotFramePlayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotFramePlayerTests.swift; sourceTree = "<group>"; };
-		FDCD65D71D47161F14AA8AF3 /* SplashTransitionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashTransitionView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -190,12 +202,7 @@
 		86A1F2A39AF5AC6972C00896 /* SeruSplash */ = {
 			isa = PBXGroup;
 			children = (
-				3E5AD7169D83FC6551681EA9 /* MascotFramePlayer.swift */,
 				0E89BFB0534D3501309EC3F7 /* SeruSplashOverlay.swift */,
-				411F0E51C3F80372CCDBC3E9 /* SpiralCollapse.metal */,
-				DF64F322F681E7626222D3C3 /* SpiralCollapseView.swift */,
-				58D2388C36F69262489C9FAD /* SplashCoordinator.swift */,
-				FDCD65D71D47161F14AA8AF3 /* SplashTransitionView.swift */,
 			);
 			path = SeruSplash;
 			sourceTree = "<group>";
@@ -206,10 +213,13 @@
 				DEABE2CF430D20451944C842 /* AccountView.swift */,
 				BE918F3C23CBD31D7ED134CD /* ChatAttachmentLoader.swift */,
 				838961CABFD98288D47EE271 /* ChatComposer.swift */,
+				B5B0195601474843036FCF4D /* ChatPhotoViewer.swift */,
 				547E9AD72257B2D79B70A6E9 /* ChatScreen.swift */,
 				AB94785FA32E1BF5D1B3BD1C /* DemoMapView.swift */,
+				362F3EC8929EE76B61314FC1 /* EventCalendarEditor.swift */,
 				1860833D955851C65C9E607F /* EventsView.swift */,
 				7F96F3A4C41D8E3B3F5BBCC4 /* ItineraryComponents.swift */,
+				7904AEB16E0DB7EC09E4361B /* JournalView.swift */,
 				BEC1D7F472F5C0434172BD06 /* LiveMapView.swift */,
 				32D89D96032D8F788F945699 /* PlaceDetailContent.swift */,
 				3AEC2F1C17D57077DEEFE9D3 /* ProfileView.swift */,
@@ -232,6 +242,7 @@
 				0BC578A6214491E9E59248A5 /* SavedMascotUITests.swift */,
 				7A53C3501324C5AA1FB79D36 /* SeruendeshAIUITests.swift */,
 				E430655871DA7F19917B76B8 /* SplashUITests.swift */,
+				D6E60B24B3C0DBFCF6ED7361 /* UXRefinementUITests.swift */,
 			);
 			path = UITests;
 			sourceTree = "<group>";
@@ -257,6 +268,7 @@
 			children = (
 				9D563A88B21BD579C660142A /* RemoteArtwork.swift */,
 				B859E8AA234A6FD0618966B2 /* SeruMascotAnimation.swift */,
+				4C4566A12DF32640B89DEF46 /* SeruMotion.swift */,
 				A7642BEBDCDDD72F61920090 /* SeruTheme.swift */,
 			);
 			path = DesignSystem;
@@ -270,12 +282,15 @@
 				4DAB5560F1F68E22BCABCECA /* AppModel.swift */,
 				B09E3A7C5AC875F107F69867 /* BackendAPI.swift */,
 				6CBA86C65BA85A6B61D6B73F /* BackendMapping.swift */,
+				6A2DAA3125ACE495FB084BAD /* EventPresentation.swift */,
 				CD08A54B4177A386EF24A05D /* EventsEmptyState.swift */,
+				B1AF3A0A73B7FC8DA4867FD7 /* MapLinks.swift */,
 				74259EC1645C09035322FB75 /* MascotFeedback.swift */,
 				2B055E000BB6AF4D72B65614 /* Models.swift */,
 				6D719AFDDA7C0CF947FBB34C /* PasswordResetLink.swift */,
 				E3A486C89282DA3E7A198D62 /* SessionCookieVault.swift */,
 				5F502126BDC193A26E31C69E /* SplashModel.swift */,
+				EABA6E7A0D87803ECB6872E4 /* WalkJournal.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -289,15 +304,18 @@
 				485CD1310C9BBBCC0A3BBDED /* AppModelTests.swift */,
 				3A50CA11CDF9E715A9037A32 /* BackendAPITests.swift */,
 				7F90053E191B77412585A5FC /* BackendIntegrationTests.swift */,
+				0054CC8E056E6FC42059A002 /* ChatPhotoProcessingTests.swift */,
+				0A3DB400BFDE08DF3A3E0CC3 /* EventPresentationTests.swift */,
 				39788E555A8A98308D3B522A /* EventsEmptyStateTests.swift */,
 				B6A7955E6A99743EB8B7CAE6 /* LivePresentationTests.swift */,
+				49FB43F9B3873328D2EC77E7 /* MapLinksTests.swift */,
 				16C5AA5AD0A228A2D95C4E81 /* MascotFeedbackTests.swift */,
-				FCA22E4CC07071F3D441A423 /* MascotFramePlayerTests.swift */,
 				2A68AF9D67277FB48CC3354E /* PasswordResetLinkTests.swift */,
 				4D65F74A9A304D1A89415FB8 /* SavedEventsTests.swift */,
 				F4C15CC8908D862EC101AF38 /* SeruMascotAnimationTests.swift */,
 				BB7A20381414321C4A130F8E /* SplashCoordinatorTests.swift */,
 				407BAE7B9A61B1B98A64E886 /* SplashModelTests.swift */,
+				BA426DCCFD459F52746D5CE5 /* WalkRecoveryTests.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -428,15 +446,18 @@
 				F3384842647A01373ABA432A /* AppModelTests.swift in Sources */,
 				7767A49AA1B5BFBDD6DD0F6A /* BackendAPITests.swift in Sources */,
 				745BBAF1CC612B7B6CEE261B /* BackendIntegrationTests.swift in Sources */,
+				F3948997E5C4B215EBE9E35C /* ChatPhotoProcessingTests.swift in Sources */,
+				51A0A9BB506ACB9D1B381FD5 /* EventPresentationTests.swift in Sources */,
 				A0590D3D4EF48E0CDD66FEE0 /* EventsEmptyStateTests.swift in Sources */,
 				DD9667242A0F3C25D7C75588 /* LivePresentationTests.swift in Sources */,
+				F741EA71A785BD71DA56F6E9 /* MapLinksTests.swift in Sources */,
 				4808DD295E1A0770832450E5 /* MascotFeedbackTests.swift in Sources */,
-				30BCC93843C2004F63A21B17 /* MascotFramePlayerTests.swift in Sources */,
 				38B35870C41231A93483D878 /* PasswordResetLinkTests.swift in Sources */,
 				9D7E48D100062EE0C30C421D /* SavedEventsTests.swift in Sources */,
 				4954AD73C3F6DA4CAB3EE0A6 /* SeruMascotAnimationTests.swift in Sources */,
 				C8C9E0F8EC135476835297A7 /* SplashCoordinatorTests.swift in Sources */,
 				692A9E671E8C1D2D7C3168FF /* SplashModelTests.swift in Sources */,
+				493047239F6CCC095D694D87 /* WalkRecoveryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -453,14 +474,18 @@
 				85BB1F28E1BA4C0C90E751CD /* BackendMapping.swift in Sources */,
 				D58291D2288FD82A8786E2CB /* ChatAttachmentLoader.swift in Sources */,
 				50E4C5AB0E3DA0F90A051A1A /* ChatComposer.swift in Sources */,
+				1FA5EAB8D24384F4D57298B2 /* ChatPhotoViewer.swift in Sources */,
 				61A9D566159468DE22FAEAA8 /* ChatScreen.swift in Sources */,
 				D9C5ACC54F38D19B8541AFFE /* DemoMapView.swift in Sources */,
+				629F557978112EFAE825671E /* EventCalendarEditor.swift in Sources */,
+				C26B2D88F3856D17720BC67D /* EventPresentation.swift in Sources */,
 				7B06600D47B61DB208BC54B0 /* EventsEmptyState.swift in Sources */,
 				401879A0A961ABC66C45AA45 /* EventsView.swift in Sources */,
 				1894F33DC763E75BFCE50090 /* ItineraryComponents.swift in Sources */,
+				A1A41B8301C7A80D6928327C /* JournalView.swift in Sources */,
 				BA93D6873FAB7F1D7E9E929D /* LiveMapView.swift in Sources */,
+				738739F8860917FB73DA3596 /* MapLinks.swift in Sources */,
 				3705AD361527250646BD3E89 /* MascotFeedback.swift in Sources */,
-				1F59008EF04970D852DAF5DE /* MascotFramePlayer.swift in Sources */,
 				9DF158F5AAE209C980FE88F2 /* Models.swift in Sources */,
 				B58546C03EAED1D3019879C1 /* PasswordResetLink.swift in Sources */,
 				76713FB0491D76B20EB008BE /* PlaceDetailContent.swift in Sources */,
@@ -470,15 +495,13 @@
 				9026018048119E3DB49FC209 /* SavedMascotAnimation.swift in Sources */,
 				EAFBCCE4649341372256CE98 /* SavedView.swift in Sources */,
 				2650802FF27F44101E058909 /* SeruMascotAnimation.swift in Sources */,
+				7D1850C34B7B3EFE640CCA68 /* SeruMotion.swift in Sources */,
 				2C47861AB154675EC8C9C16F /* SeruSplashOverlay.swift in Sources */,
 				754B09A7D158D8B670488BCE /* SeruTheme.swift in Sources */,
 				E370A8A427F000D7867A4B0A /* SeruendeshAIApp.swift in Sources */,
 				7E3AA850DCFE37FEA12D5A9F /* SessionCookieVault.swift in Sources */,
-				581485DC925FC20ADF273DC0 /* SpiralCollapse.metal in Sources */,
-				6EE008465887E54A86CE7B4A /* SpiralCollapseView.swift in Sources */,
-				127C68E1A07631D262591CCF /* SplashCoordinator.swift in Sources */,
 				EE3C63E06CA579EEA0318F1C /* SplashModel.swift in Sources */,
-				78B2D505AD92629CC8DFB875 /* SplashTransitionView.swift in Sources */,
+				0DCE922CE3FA2C20E841FB4F /* WalkJournal.swift in Sources */,
 				03384E93DC854EACF5AA22AE /* WalkPlanContent.swift in Sources */,
 				E6734B79E59B650ABB499313 /* WalkSettingsView.swift in Sources */,
 				848709C24BCA31D9DC4E35FF /* WalkView.swift in Sources */,
@@ -495,6 +518,7 @@
 				6A53679BC80705B95844006B /* SavedMascotUITests.swift in Sources */,
 				E29E16ECD1558C51783C6FDF /* SeruendeshAIUITests.swift in Sources */,
 				D6A93C1A9A7C8484EED62896 /* SplashUITests.swift in Sources */,
+				4E564B4D92A9F53A918CCD44 /* UXRefinementUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -6,13 +6,13 @@ final class AppModel {
     let account: AccountStore
     var tab: AppTab = .walk
     private(set) var screen: WalkScreen = .home
-    var query = ""
-    var chatDraft = ""
-    var chatAttachmentData: Data?
-    var duration = 60 { didSet { if !applyingResponse { durationEdited = true; if duration != oldValue { contextChanged() } } } }
+    var query = "" { didSet { persistSession() } }
+    var chatDraft = "" { didSet { persistSession() } }
+    var chatAttachmentData: Data? { didSet { persistSession() } }
+    var duration = 60 { didSet { if !applyingResponse { durationEdited = true; if duration != oldValue { contextChanged(); persistSession() } } } }
     var origin = "Байтерек"
-    var onlyFree = false { didSet { if !applyingResponse && oldValue != onlyFree { contextChanged() } } }
-    var withKids = false { didSet { if !applyingResponse && oldValue != withKids { contextChanged() } } }
+    var onlyFree = false { didSet { if !applyingResponse && oldValue != onlyFree { contextChanged(); persistSession() } } }
+    var withKids = false { didSet { if !applyingResponse && oldValue != withKids { contextChanged(); persistSession() } } }
     var theme: AppTheme = .system { didSet { defaults.set(theme.rawValue, forKey: "seru.theme") } }
     private(set) var places = Array(DemoData.places.prefix(3))
     private(set) var events = DemoData.events
@@ -31,9 +31,15 @@ final class AppModel {
     private(set) var currentPlan: WalkRoute?
     private(set) var isLoadingPlan = false
     private(set) var planError: String?
+    private(set) var journalEntries: [WalkJournalEntry] = []
+    private(set) var recentlyRemovedPlace: Place?
     var toast: String?
     var mascotFeedback: MascotFeedback?
 
+    @ObservationIgnored private let journalStore: WalkJournalStore
+    @ObservationIgnored private var currentWalkID = UUID()
+    @ObservationIgnored private var restoringSession = true
+    @ObservationIgnored private var removedFromAccountID: String?
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let backend: (any SeruBackend)?
     @ObservationIgnored private var history: [WalkScreen] = []
@@ -48,9 +54,11 @@ final class AppModel {
     @ObservationIgnored private var pendingRequest: (text: String, photo: Data?, reply: Bool)?
     @ObservationIgnored private var resolvedOrigin: APIOrigin?
     @ObservationIgnored private var hasBootstrapped = false
+    @ObservationIgnored private var isBootstrapping = false
     @ObservationIgnored private var durationEdited = false
     @ObservationIgnored private var applyingResponse = false
     @ObservationIgnored private var needsRefresh = false
+    @ObservationIgnored private var planWasEdited = false
     @ObservationIgnored private var pendingGuestImportIDs: [String: Set<String>] = [:]
     private var placeCatalog: [String: Place] = [:]
     private var guestPlaceSnapshots: [String: Place] = [:]
@@ -61,10 +69,11 @@ final class AppModel {
     private var savedEventSnapshots: [String: CityEvent] = [:]
     var usesBackend: Bool { backend != nil }
 
-    init(defaults: UserDefaults = .standard, backend: (any SeruBackend)? = nil, accountBackend: (any SeruAccountBackend)? = nil) {
+    init(defaults: UserDefaults = .standard, backend: (any SeruBackend)? = nil, accountBackend: (any SeruAccountBackend)? = nil, journalDirectory: URL? = nil) {
         self.defaults = defaults; self.backend = backend
-        account = AccountStore(backend: accountBackend ?? (backend as? any SeruAccountBackend))
-        theme = AppTheme(rawValue: defaults.string(forKey: "seru.theme") ?? "dark") ?? .dark
+        journalStore = WalkJournalStore(defaults: defaults, directory: journalDirectory)
+        account = AccountStore(backend: accountBackend ?? (backend as? any SeruAccountBackend), defaults: defaults)
+        theme = AppTheme(rawValue: defaults.string(forKey: "seru.theme") ?? "system") ?? .system
         origin = defaults.string(forKey: "seru.origin") ?? "Байтерек"
         if backend != nil {
             places = []; events = []
@@ -88,9 +97,28 @@ final class AppModel {
         savedEventSnapshots = Dictionary(eventSnapshots.filter { savedEventIDs.contains($0.id) }.map { ($0.id, $0) },
                                          uniquingKeysWith: { _, new in new })
         cacheSavedEvents()
+        if backend == nil { landmarks = DemoData.landmarks; originCoordinate = matchingLandmark()?.coordinate; refreshDemoPlaces() }
+        let restored = journalStore.load()
+        journalEntries = restored.entries
+        if let active = restored.active { restoreSession(active) }
+        restoringSession = false
     }
 
-    var guestSavedPlaces: [Place] { usesBackend ? savedIDs.sorted().compactMap { guestPlaceSnapshots[$0] } : DemoData.places.filter { savedIDs.contains($0.id) } }
+    var guestSavedPlaces: [Place] {
+        if usesBackend { return savedIDs.sorted().compactMap { guestPlaceSnapshots[$0] } }
+        return DemoData.places.filter { savedIDs.contains($0.id) }.map { value in
+            var place = value
+            if let start = originCoordinate, let end = place.coordinate {
+                let meters = WalkPlanner.estimatedDistance(from: start, to: end)
+                place.travelMinutes = Int(ceil(Double(meters) / 75))
+                place.distance = BackendMapping.distance(meters)
+            } else {
+                place.travelMinutes = 0
+                place.distance = ""
+            }
+            return place
+        }
+    }
     var savedPlaces: [Place] { account.user == nil ? guestSavedPlaces : account.savedPlaces }
     var savedRoutes: [WalkRoute] { usesBackend ? savedRouteIDs.sorted().compactMap { routeCatalog[$0] } : DemoData.routes.filter { savedRouteIDs.contains($0.id) } }
     var savedEvents: [CityEvent] { savedEventIDs.sorted().compactMap { savedEventSnapshots[$0] } }
@@ -120,18 +148,25 @@ final class AppModel {
 
     func toggleSaved(_ place: Place) {
         if account.user != nil {
+            guard !account.isShowingCachedData else {
+                account.toggleSaved(place)
+                return
+            }
             let wasSaved = account.isSaved(place)
+            if wasSaved { recentlyRemovedPlace = place; removedFromAccountID = account.user?.id }
             account.toggleSaved(place)
             if !wasSaved && account.isSaved(place) {
                 if toast == "Место удалено из избранного" { toast = nil }
                 emitMascotFeedback(kind: .saved, message: "Место добавлено в избранное")
             } else if wasSaved && !account.isSaved(place) {
                 dismissSavedFeedback()
+                toast = "Место удалено из избранного"
             }
             return
         }
         placeCatalog[place.id] = place
         if savedIDs.contains(place.id) {
+            recentlyRemovedPlace = place; removedFromAccountID = nil
             savedIDs.remove(place.id); guestPlaceSnapshots.removeValue(forKey: place.id)
         } else {
             savedIDs.insert(place.id); guestPlaceSnapshots[place.id] = place
@@ -145,6 +180,13 @@ final class AppModel {
             dismissSavedFeedback()
             toast = "Место удалено из избранного"
         }
+    }
+    func undoSavedRemoval() {
+        guard let place = recentlyRemovedPlace else { return }
+        defer { recentlyRemovedPlace = nil; removedFromAccountID = nil }
+        guard account.user?.id == removedFromAccountID else { return }
+        if !isSaved(place) { toggleSaved(place) }
+        toast = nil
     }
     func importGuestSavedPlaces() async {
         guard let userID = account.user?.id else { return }
@@ -217,8 +259,9 @@ final class AppModel {
     }
 
     func bootstrap() async {
-        guard let backend, !hasBootstrapped else { return }
-        hasBootstrapped = true
+        guard let backend, !hasBootstrapped, !isBootstrapping else { return }
+        isBootstrapping = true
+        defer { isBootstrapping = false }
         async let feed: Void = refreshEvents()
         do {
             let meta = try await backend.metadata()
@@ -226,6 +269,8 @@ final class AppModel {
             photoSearchAvailable = meta.features.photo
             account.passwordResetAvailable = meta.features.passwordResetEmail
             if let selected = matchingLandmark() { originCoordinate = selected.coordinate }
+            hasBootstrapped = true
+            persistSession()
         } catch is CancellationError { hasBootstrapped = false }
         catch { toast = error.localizedDescription }
         await feed
@@ -260,6 +305,7 @@ final class AppModel {
             }
         } else { refreshDemoPlaces() }
         navigate(to: .results)
+        persistSession()
     }
     func showResults(placeIDs: [String]) {
         places = placeIDs.compactMap { placeCatalog[$0] }
@@ -278,10 +324,14 @@ final class AppModel {
     }
     func showPlan() {
         navigate(to: .plan)
-        if usesBackend && currentPlan == nil { Task { await retryPlan() } }
+        if currentPlan == nil && !planWasEdited {
+            if usesBackend { Task { await retryPlan() } }
+            else { refreshDemoPlaces(); persistSession() }
+        }
     }
     func retryPlan() async {
-        guard let backend else { return }
+        planWasEdited = false
+        guard let backend else { refreshDemoPlaces(); persistSession(); return }
         if isLoadingPlan { await planTask?.value; return }
         planRequestID = UUID(); let token = planRequestID
         isLoadingPlan = true; planError = nil
@@ -295,7 +345,7 @@ final class AppModel {
                     self.planError = "Пока нет готового маршрута. Попробуй уточнить пожелания в чате."
                     return
                 }
-                self.apply(idea.response, reply: false, planTitle: idea.title)
+                self.apply(idea.response, reply: false, planTitle: idea.title, adoptServerContext: false)
                 self.emitMascotFeedback(kind: .ready, message: "План прогулки готов")
             } catch {
                 if self.planRequestID == token && !(error is CancellationError) && !Task.isCancelled {
@@ -309,14 +359,26 @@ final class AppModel {
     func showChat() { navigate(to: .chat) }
     func goBack() { screen = history.popLast() ?? .home }
 
+    func startNewWalk() {
+        persistSession()
+        resetWalk()
+        tab = .walk
+    }
+
     func resetWalk() {
+        restoringSession = true
         contextChanged()
+        cancelResponse()
+        currentWalkID = UUID()
         routeRequestID = UUID(); routePreview = nil; isLoadingRoute = false; routeError = nil; routeTarget = nil
         currentPlan = nil; planError = nil
         history.removeAll(); screen = .home; query = ""; chatDraft = ""; chatAttachmentData = nil; messages.removeAll()
         applyingResponse = true; duration = 60; onlyFree = false; withKids = false; applyingResponse = false
         durationEdited = false; needsRefresh = false
         places = usesBackend ? [] : Array(DemoData.places.prefix(3))
+        restoringSession = false
+        if !usesBackend { refreshDemoPlaces() }
+        persistSession()
     }
     func saveOrigin(_ value: String) {
         guard value != origin else { return }
@@ -324,12 +386,22 @@ final class AppModel {
         origin = value; resolvedOrigin = nil; originCoordinate = matchingLandmark()?.coordinate
         routePreview = nil; routeRequestID = UUID(); isLoadingRoute = false; currentPlan = nil; needsRefresh = true
         defaults.set(value, forKey: "seru.origin")
+        if !usesBackend { refreshDemoPlaces() }
+        persistSession()
     }
     private func contextChanged() {
         contextRevision += 1; needsRefresh = true
+        let interrupted = isResponding || (pendingRequest != nil && responseError != nil)
+        let request = pendingRequest
         cancelResponse()
+        if interrupted {
+            responseError = "Условия прогулки изменились. Отправь запрос ещё раз или нажми «Повторить»."
+            pendingRequest = request
+        }
         planRequestID = UUID(); planTask?.cancel(); planTask = nil; isLoadingPlan = false; planError = nil; currentPlan = nil
         routeRequestID = UUID(); routeTask?.cancel(); routeTask = nil; isLoadingRoute = false; routeError = nil; routePreview = nil
+        planWasEdited = false
+        if !usesBackend && !restoringSession { refreshDemoPlaces() }
     }
     private func matchingLandmark() -> StartLandmark? {
         let name = origin.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -365,16 +437,22 @@ final class AppModel {
         messages.append(ChatMessage(role: .user, text: trimmed, attachmentData: attachment))
         if usesBackend { requestRecommendation(trimmed, photo: attachment, reply: true) }
         else {
+            responseError = nil
+            pendingRequest = (trimmed, attachment, true)
             isResponding = true
+            responseID = UUID(); let token = responseID
             responseTask = Task { @MainActor [weak self] in
-                do { try await Task.sleep(for: .milliseconds(650)) } catch { return }
-                guard let self, !Task.isCancelled else { return }
+                await Task.yield()
+                guard let self, !Task.isCancelled, self.responseID == token else { return }
                 self.refreshDemoPlaces()
-                let reply = self.places.isEmpty ? "Подходящих мест нет. Увеличь время или измени фильтры." : "Подобрал места рядом с \(self.origin). Посмотри на карте."
-                self.messages.append(ChatMessage(role: .assistant, text: reply, showsRoute: !self.places.isEmpty))
-                self.isResponding = false
+                let reply = self.places.isEmpty ? (self.planError ?? "Подходящих мест нет. Увеличь время или измени фильтры.") : "Подобрал места рядом с \(self.origin). Посмотри на карте."
+                self.messages.append(ChatMessage(role: .assistant, text: reply, showsRoute: !self.places.isEmpty,
+                    placeIDs: self.places.map(\.id), routeID: self.currentPlan?.id, snapshot: self.recommendationSnapshot))
+                self.isResponding = false; self.pendingRequest = nil; self.responseTask = nil
+                self.persistSession()
             }
         }
+        persistSession()
     }
     private func requestRecommendation(_ text: String, photo: Data?, reply: Bool) {
         guard let backend, !isResponding else { return }
@@ -405,14 +483,19 @@ final class AppModel {
     }
     func retryResponse() {
         guard let pendingRequest, !isResponding else { return }
-        requestRecommendation(pendingRequest.text, photo: pendingRequest.photo, reply: pendingRequest.reply)
+        if usesBackend { requestRecommendation(pendingRequest.text, photo: pendingRequest.photo, reply: pendingRequest.reply) }
+        else {
+            responseError = nil; refreshDemoPlaces()
+            messages.append(ChatMessage(role: .assistant, text: places.isEmpty ? "Подходящих мест нет. Измени время или фильтры." : "Подобрал места рядом с \(origin).",
+                                       showsRoute: !places.isEmpty, placeIDs: places.map(\.id), routeID: currentPlan?.id, snapshot: recommendationSnapshot))
+            self.pendingRequest = nil; persistSession()
+        }
     }
-    private func apply(_ response: APIRecommendationResponse, reply: Bool, planTitle: String? = nil) {
+    private func apply(_ response: APIRecommendationResponse, reply: Bool, planTitle: String? = nil, adoptServerContext: Bool = true) {
         let mapped = (response.recommendations + response.ideas).map(BackendMapping.place)
         for place in mapped { placeCatalog[place.id] = place }
-        places = mapped; needsRefresh = false
-        if let context = response.usedContext {
-            applyingResponse = true; duration = context.timeBudgetMin; applyingResponse = false
+        if adoptServerContext, let context = response.usedContext {
+            if !durationEdited { applyingResponse = true; duration = context.timeBudgetMin; applyingResponse = false }
             if let location = context.location, location.source != "none" {
                 let point = GeoPoint(latitude: location.lat, longitude: location.lon)
                 if point.isValid {
@@ -421,17 +504,26 @@ final class AppModel {
                 }
             }
         }
+        places = mapped.filter { (!onlyFree || $0.isFree) && (!withKids || $0.isChildFriendly) && $0.travelMinutes + $0.visitMinutes <= duration }; needsRefresh = false
         currentPlan = response.route.map { BackendMapping.route($0, response: response, places: mapped, title: planTitle) }
+        let wrongStart = !adoptServerContext && currentPlan?.originLabel != origin
+        let needsAdjustment = wrongStart || (currentPlan.map { $0.duration > duration || $0.fitsBudget == false || $0.placeIDs.contains(where: { id in !places.contains { $0.id == id } }) } ?? false)
         if currentPlan?.originLabel == nil { currentPlan?.originLabel = origin }
+        if let plan = currentPlan, needsAdjustment {
+            let ordered = plan.placeIDs.compactMap { id in places.first { $0.id == id } }
+            currentPlan = WalkPlanner.plan(places: ordered, context: recommendationContext)
+        }
         if let currentPlan { routeCatalog[currentPlan.id] = currentPlan }
         if reply {
             let parts = ([response.summary] + response.notes + [response.disclaimer]).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             var seen = Set<String>()
             let unique = parts.filter { seen.insert($0).inserted }
-            let answer = unique.isEmpty ? "Уточни, что хочется увидеть и откуда начнём." : unique.joined(separator: "\n\n")
-            messages.append(ChatMessage(role: .assistant, text: answer, showsRoute: !mapped.isEmpty,
-                placeIDs: mapped.map(\.id), routeID: currentPlan?.id))
+            var answer = unique.isEmpty ? "Уточни, что хочется увидеть и откуда начнём." : unique.joined(separator: "\n\n")
+            if needsAdjustment { answer += currentPlan == nil ? "\n\nВ выбранные условия план не помещается. Измени время или фильтры." : "\n\nСократил план под твои условия. Время в нём примерное." }
+            messages.append(ChatMessage(role: .assistant, text: answer, showsRoute: !places.isEmpty,
+                placeIDs: places.map(\.id), routeID: currentPlan?.id, snapshot: recommendationSnapshot))
         }
+        persistSession()
     }
     func sendChatDraft() -> Bool {
         let input = chatDraft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -480,9 +572,118 @@ final class AppModel {
         tab = .walk
         guard screen != destination else { return }
         history.append(screen); screen = destination
+        persistSession()
+    }
+    var recommendationContext: RecommendationContext {
+        RecommendationContext(origin: origin, duration: duration, onlyFree: onlyFree, withKids: withKids, originCoordinate: originCoordinate)
+    }
+    private var recommendationSnapshot: RecommendationSnapshot {
+        RecommendationSnapshot(context: recommendationContext, places: places, plan: currentPlan)
+    }
+
+    func openRecommendation(_ message: ChatMessage) {
+        guard let snapshot = message.snapshot else { showResults(placeIDs: message.placeIDs); return }
+        contextChanged()
+        applyingResponse = true
+        duration = snapshot.context.duration; onlyFree = snapshot.context.onlyFree; withKids = snapshot.context.withKids
+        origin = snapshot.context.origin; originCoordinate = snapshot.context.originCoordinate
+        applyingResponse = false
+        durationEdited = true; resolvedOrigin = nil
+        places = snapshot.places; currentPlan = snapshot.plan
+        for place in places { placeCatalog[place.id] = place }
+        if let currentPlan { routeCatalog[currentPlan.id] = currentPlan }
+        needsRefresh = false; responseError = nil
+        navigate(to: .results); persistSession()
+    }
+
+    func updatePlan(placeIDs: [String]) {
+        planWasEdited = true
+        let allowed = Set((currentPlan?.placeIDs ?? []) + places.map(\.id))
+        let ordered = placeIDs.filter { allowed.contains($0) }.compactMap { placeCatalog[$0] }
+        currentPlan = WalkPlanner.plan(places: ordered, context: recommendationContext, id: currentPlan?.id ?? UUID().uuidString)
+        if let currentPlan { routeCatalog[currentPlan.id] = currentPlan }
+        planError = currentPlan == nil ? "В плане пока нет остановок. Добавь места из рекомендаций." : nil
+        persistSession()
+    }
+
+    func restoreJournalEntry(id: UUID) {
+        guard let entry = journalEntries.first(where: { $0.id == id }) else { return }
+        persistSession(); contextChanged()
+        restoringSession = true; restoreSession(entry); restoringSession = false
+        tab = .walk; screen = .chat; history = []
+        persistSession()
+    }
+
+    func deleteJournalEntry(id: UUID) {
+        journalEntries.removeAll { $0.id == id }
+        if id == currentWalkID { resetWalk() }
+        else { persistSession() }
+    }
+
+    private func restoreSession(_ entry: WalkJournalEntry) {
+        currentWalkID = entry.id
+        resolvedOrigin = nil
+        pendingRequest = nil
+        responseError = nil
+        applyingResponse = true
+        origin = entry.origin; duration = entry.duration; onlyFree = entry.context.onlyFree; withKids = entry.context.withKids
+        originCoordinate = entry.context.originCoordinate
+        applyingResponse = false
+        durationEdited = true
+        query = entry.query; chatDraft = entry.draft; chatAttachmentData = entry.draftPhoto
+        messages = entry.messages; places = entry.places; currentPlan = entry.plan; screen = entry.screen
+        planWasEdited = entry.planEdited ?? false
+        if planWasEdited && currentPlan == nil { planError = "В плане пока нет остановок. Добавь места из рекомендаций." }
+        for place in places { placeCatalog[place.id] = place }
+        for message in messages {
+            for place in message.snapshot?.places ?? [] { placeCatalog[place.id] = place }
+            if let plan = message.snapshot?.plan { routeCatalog[plan.id] = plan }
+        }
+        if let currentPlan { routeCatalog[currentPlan.id] = currentPlan }
+        // A process restart cannot resume the previous task; make its unfinished request visible.
+        if let message = messages.last, message.role == .user {
+            pendingRequest = (text: message.text, photo: message.attachmentData, reply: true)
+            responseError = "Ответ прервался. Попробуй ещё раз."
+        }
+    }
+
+    private func persistSession() {
+        guard !restoringSession else { return }
+        let fallbackTitle = query.isEmpty ? (chatDraft.isEmpty && planWasEdited ? (currentPlan?.name ?? "План прогулки") : chatDraft) : query
+        let title = String((messages.first(where: { $0.role == .user })?.text ?? fallbackTitle).prefix(100))
+        var entry = WalkJournalEntry(id: currentWalkID, title: title.isEmpty ? "Новая прогулка" : title,
+                                     updatedAt: .now, context: recommendationContext, query: String(query.prefix(1000)),
+                                     draft: String(chatDraft.prefix(12_000)), draftPhoto: chatAttachmentData,
+                                     messages: Array(messages.suffix(WalkJournalStore.maximumMessages)), places: places,
+                                     plan: currentPlan, screen: screen, planEdited: planWasEdited)
+        journalEntries.removeAll { $0.id == currentWalkID }
+        if entry.hasContent { journalEntries.insert(entry, at: 0) }
+        journalEntries = Array(journalEntries.prefix(WalkJournalStore.maximumEntries))
+        let bounded = WalkJournalStore.boundedPhotos([entry] + journalEntries.filter { $0.id != entry.id })
+        entry = bounded[0]
+        journalEntries = bounded.filter(\.hasContent)
+        restoringSession = true
+        messages = entry.messages; chatAttachmentData = entry.draftPhoto
+        restoringSession = false
+        _ = journalStore.save(active: entry, entries: journalEntries)
     }
     private func refreshDemoPlaces() {
-        var filtered = DemoData.places.prefix(3).filter {
+        originCoordinate = matchingLandmark()?.coordinate
+        guard let start = originCoordinate else {
+            places = []; currentPlan = nil
+            planError = "Для примерного расчёта выбери знакомый ориентир в настройках прогулки."
+            return
+        }
+        planError = nil
+        var filtered = DemoData.places.prefix(3).map { place in
+            var estimated = place
+            if let end = place.coordinate {
+                let meters = WalkPlanner.estimatedDistance(from: start, to: end)
+                estimated.travelMinutes = Int(ceil(Double(meters) / 75))
+                estimated.distance = BackendMapping.distance(meters)
+            }
+            return estimated
+        }.filter {
             $0.travelMinutes + $0.visitMinutes <= duration && (!onlyFree || $0.isFree) && (!withKids || $0.isChildFriendly)
         }
         let text = query.lowercased()
@@ -490,5 +691,8 @@ final class AppModel {
         if text.contains("коф") && !text.contains("без кофе") { filtered.sort { ($0.id == "coffee" ? 0 : 1) < ($1.id == "coffee" ? 0 : 1) } }
         else if text.contains("ближе") { filtered.sort { $0.travelMinutes < $1.travelMinutes } }
         places = filtered
+        for place in filtered { placeCatalog[place.id] = place }
+        currentPlan = WalkPlanner.plan(places: filtered, context: recommendationContext)
+        if let currentPlan { routeCatalog[currentPlan.id] = currentPlan }
     }
 }

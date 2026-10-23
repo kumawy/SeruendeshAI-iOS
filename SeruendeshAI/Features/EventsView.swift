@@ -2,14 +2,16 @@ import SwiftUI
 
 struct EventsView: View {
     var mascotActive: Bool = true
+    var onProfile: () -> Void = {}
     @Environment(AppModel.self) private var app
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var query = ""
     @State private var day: EventDay = .today
     @State private var freeOnly = false
-    @State private var savedOnly = false
     @State private var category = "Все категории"
     @State private var selectedDate = Date.now
-    @State private var demoToday = Calendar.current.startOfDay(for: .now)
+    @State private var now = Date.now
     @State private var showingDatePicker = false
     @State private var showingFilters = false
     @FocusState private var searchFocused: Bool
@@ -19,91 +21,50 @@ struct EventsView: View {
     }
 
     private var emptyStateKind: EventsEmptyState {
-        EventsEmptyState.select(savedOnly: savedOnly, hasSavedEvents: !app.savedEvents.isEmpty,
-                                query: query, hasCategoryFilter: category != "Все категории", freeOnly: freeOnly)
+        EventsEmptyState.select(query: query, hasCategoryFilter: category != "Все категории", freeOnly: freeOnly)
     }
 
     private var categories: [String] {
-        ["Все категории"] + Set(app.events.map(\.category)).sorted()
-    }
-
-    private var eventCalendar: Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Almaty") ?? .gmt
-        return calendar
+        ["Все категории"] + Set(app.events.map(\.category).filter { !$0.isEmpty }).sorted()
     }
 
     private var filteredEvents: [CityEvent] {
         app.events.filter { event in
-            let matchesDay: Bool
-            if event.isLive {
-                matchesDay = matchesLiveDay(event)
-            } else {
-                let eventDate = Calendar.current.date(
-                    byAdding: .day, value: event.isTomorrow ? 1 : 0, to: demoToday
-                ) ?? demoToday
-                switch day {
-                case .all: matchesDay = true
-                case .today: matchesDay = !event.isTomorrow
-                case .tomorrow: matchesDay = event.isTomorrow
-                case .weekend: matchesDay = Calendar.current.isDateInWeekend(eventDate)
-                case .date: matchesDay = Calendar.current.isDate(eventDate, inSameDayAs: selectedDate)
-                }
-            }
             let search = query.trimmingCharacters(in: .whitespacesAndNewlines)
             let matchesSearch = search.isEmpty ||
                 "\(event.title) \(event.venue) \(event.category)".localizedStandardContains(search)
-            return matchesDay && matchesSearch && (!freeOnly || event.isFree) &&
-                (!savedOnly || app.isEventSaved(event)) &&
+            return EventPresentation.matchesDay(event, day: day, selectedDate: selectedDate, now: now) &&
+                matchesSearch && (!freeOnly || event.isFree) &&
                 (category == "Все категории" || event.category == category)
         }
-    }
-
-    private func matchesLiveDay(_ event: CityEvent) -> Bool {
-        let today = eventCalendar.startOfDay(for: app.eventToday)
-        switch day {
-        case .all:
-            return true
-        case .today:
-            return eventOccurs(event, on: today)
-        case .tomorrow:
-            guard let tomorrow = eventCalendar.date(byAdding: .day, value: 1, to: today) else { return false }
-            return eventOccurs(event, on: tomorrow)
-        case .date:
-            return eventOccurs(event, on: selectedDate)
-        case .weekend:
-            // Include the current weekend, or the next one from the backend's Almaty date.
-            guard let weekendStart = (0..<7).compactMap({
-                eventCalendar.date(byAdding: .day, value: $0, to: today)
-            }).first(where: { eventCalendar.isDateInWeekend($0) }) else { return false }
-            return (0..<2).compactMap {
-                eventCalendar.date(byAdding: .day, value: $0, to: weekendStart)
-            }.filter {
-                eventCalendar.isDateInWeekend($0)
-            }.contains {
-                eventOccurs(event, on: $0)
-            }
-        }
-    }
-
-    private func eventOccurs(_ event: CityEvent, on date: Date) -> Bool {
-        if !event.sessionDates.isEmpty {
-            return event.sessionDates.contains { eventCalendar.isDate($0, inSameDayAs: date) }
-        }
-        guard let start = event.startDate ?? event.endDate else { return false }
-        let startDay = eventCalendar.startOfDay(for: start)
-        let endDay = eventCalendar.startOfDay(for: event.endDate ?? start)
-        let selectedDay = eventCalendar.startOfDay(for: date)
-        return selectedDay >= startDay && selectedDay <= max(startDay, endDay)
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    HStack {
+                        Text("События")
+                            .font(.largeTitle.weight(.bold))
+                            .foregroundStyle(SeruColor.ink)
+                            .accessibilityAddTraits(.isHeader)
+                        Spacer(minLength: 8)
+                        Button(action: onProfile) {
+                            Image(systemName: "person.crop.circle")
+                                .font(.title3)
+                                .frame(width: 44, height: 44)
+                        }
+                        .accessibilityLabel("Профиль")
+                        .accessibilityIdentifier("events-profile")
+                    }
+                    .padding(.horizontal, 16)
                     searchField
                         .padding(.horizontal, 16)
                     dayFilters
+                    if category != "Все категории" {
+                        selectedCategoryChip
+                            .padding(.horizontal, 16)
+                    }
                     if !app.usesBackend || !app.events.isEmpty ||
                         (!app.isLoadingEvents && app.eventsError == nil) {
                         eventCount
@@ -126,11 +87,9 @@ struct EventsView: View {
                     } else {
                         LazyVStack(spacing: 20) {
                             ForEach(filteredEvents) { event in
-                                EventFeedCard(
-                                    event: event,
-                                    isSaved: app.isEventSaved(event),
-                                    toggleSaved: { app.toggleSavedEvent(event) }
-                                )
+                                EventFeedCard(event: event, dateText: EventPresentation.cardDate(
+                                    event, day: day, selectedDate: selectedDate, now: now
+                                ))
                             }
                         }
                         .padding(.horizontal, 16)
@@ -141,25 +100,40 @@ struct EventsView: View {
             }
             .background(SeruColor.background)
             .scrollDismissesKeyboard(.interactively)
-            .refreshable { await app.refreshEvents() }
-            .task {
-                if app.usesBackend && app.events.isEmpty && !app.isLoadingEvents {
-                    await app.refreshEvents()
+            .refreshable { await refreshCurrentDay() }
+            .task(id: scenePhase) {
+                guard scenePhase == .active else { return }
+                await refreshCurrentDay()
+                // Almaty's midnight may differ from the device's calendar-day notification.
+                while !Task.isCancelled {
+                    let next = EventPresentation.nextDayChange(after: .now)
+                    do { try await Task.sleep(for: .seconds(max(1, next.timeIntervalSinceNow))) }
+                    catch { return }
+                    await refreshCurrentDay()
                 }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+                guard scenePhase == .active else { return }
+                Task { await refreshCurrentDay() }
             }
             .toolbarVisibility(.hidden, for: .navigationBar)
             .navigationDestination(for: CityEvent.self) { event in
-                EventDetailView(
-                    event: event,
-                    isSaved: app.isEventSaved(event),
-                    toggleSaved: { app.toggleSavedEvent(event) }
-                )
+                EventDetailView(event: event)
             }
             .sheet(isPresented: $showingDatePicker) {
-                datePickerSheet
+                EventDatePickerSheet(selectedDate: selectedDate) { date in
+                    selectedDate = date
+                    day = .date
+                }
             }
             .sheet(isPresented: $showingFilters) {
-                filterSheet
+                EventFiltersSheet(categories: categories, freeOnly: freeOnly, category: category,
+                                  day: day, selectedDate: selectedDate) { free, selectedCategory, selectedDay, date in
+                    freeOnly = free
+                    category = selectedCategory
+                    day = selectedDay
+                    selectedDate = date
+                }
             }
         }
         .tint(SeruColor.action)
@@ -194,12 +168,12 @@ struct EventsView: View {
                 showingFilters = true
             } label: {
                 Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.body.weight(.medium))
                     .foregroundStyle(SeruColor.ink)
                     .frame(width: 44, height: 44)
                     .background(SeruColor.field, in: .circle)
                     .overlay(alignment: .topTrailing) {
-                        if freeOnly || savedOnly || category != "Все категории" {
+                        if freeOnly || category != "Все категории" {
                             Circle()
                                 .fill(SeruColor.action)
                                 .frame(width: 9, height: 9)
@@ -217,17 +191,6 @@ struct EventsView: View {
         .shadow(color: Color.black.opacity(0.06), radius: 12, y: 6)
     }
 
-    private var selectedDateLabel: String {
-        guard app.usesBackend else {
-            return selectedDate.formatted(.dateTime.day().month(.abbreviated))
-        }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ru_RU")
-        formatter.timeZone = eventCalendar.timeZone
-        formatter.dateFormat = "d MMM"
-        return formatter.string(from: selectedDate)
-    }
-
     private var dayFilters: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 8) {
@@ -237,7 +200,7 @@ struct EventsView: View {
                     }
                 }
                 EventFilterPill(
-                    title: day == .date ? selectedDateLabel : "Выбрать дату",
+                    title: day == .date ? EventPresentation.selectedDateLabel(selectedDate) : "Выбрать дату",
                     symbol: "calendar",
                     isSelected: day == .date
                 ) {
@@ -245,11 +208,6 @@ struct EventsView: View {
                 }
                 EventFilterPill(title: "Бесплатно", isSelected: freeOnly) {
                     freeOnly.toggle()
-                }
-                if savedOnly {
-                    EventFilterPill(title: "Сохранённые", symbol: "heart.fill", isSelected: true) {
-                        savedOnly = false
-                    }
                 }
             }
             .padding(.horizontal, 16)
@@ -259,7 +217,9 @@ struct EventsView: View {
     }
 
     private var eventCount: some View {
-        Text("\(filteredEvents.count) \(eventCountWord(filteredEvents.count))")
+        Text(EventPresentation.eventCount(filteredEvents.count))
+            .contentTransition(.numericText(value: Double(filteredEvents.count)))
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: filteredEvents.count)
             .font(.subheadline)
             .foregroundStyle(SeruColor.muted)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -289,7 +249,6 @@ struct EventsView: View {
 
     private var emptyStateScene: SeruMascotScene {
         switch emptyStateKind {
-        case .noSavedEvents: .emptyBox
         case .noMatches: .searchEmpty
         case .noEventsOnSelectedDay: .calendarEmpty
         }
@@ -297,7 +256,6 @@ struct EventsView: View {
 
     private var emptyStateTitle: String {
         switch emptyStateKind {
-        case .noSavedEvents: "Пока нет сохранённых событий"
         case .noMatches: "По этим условиям событий нет"
         case .noEventsOnSelectedDay:
             day == .all ? "Событий пока нет" : day == .weekend ? "На выходные событий нет" : "На эту дату событий нет"
@@ -306,20 +264,18 @@ struct EventsView: View {
 
     private var emptyStateActionTitle: String {
         switch emptyStateKind {
-        case .noSavedEvents: "Показать все события"
         case .noMatches: "Сбросить фильтры"
         case .noEventsOnSelectedDay:
-            day != .all ? "Показать все даты" : savedOnly ? "Показать все события" : "Обновить"
+            day != .all ? "Показать все даты" : "Обновить"
         }
     }
 
     private func resolveEmptyState() {
         switch emptyStateKind {
-        case .noSavedEvents, .noMatches:
+        case .noMatches:
             resetFilters()
         case .noEventsOnSelectedDay:
             if day != .all { day = .all }
-            else if savedOnly { savedOnly = false }
             else { Task { await app.refreshEvents() } }
         }
     }
@@ -371,111 +327,37 @@ struct EventsView: View {
         .accessibilityIdentifier(showsMascot ? "events-load-failure" : "events-refresh-error")
     }
 
-    private var datePickerSheet: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 18) {
-                    DatePicker("Дата события", selection: $selectedDate, displayedComponents: .date)
-                        .datePickerStyle(.graphical)
-                        .environment(\.calendar, app.usesBackend ? eventCalendar : .current)
-                        .environment(\.timeZone, app.usesBackend ? eventCalendar.timeZone : .current)
-                    PrimaryAction(title: "Показать события", symbol: "calendar") {
-                        day = .date
-                        showingDatePicker = false
-                    }
-                }
-                .padding(20)
+    private var selectedCategoryChip: some View {
+        HStack {
+            EventFilterPill(title: category, symbol: "xmark", isSelected: true, wrapsTitle: true) {
+                category = "Все категории"
             }
-            .background(SeruColor.background)
-            .navigationTitle("Выбрать дату")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Закрыть") { showingDatePicker = false }
-                }
-            }
+            .accessibilityLabel("Убрать фильтр категории «\(category)»")
+            .accessibilityIdentifier("events-active-category")
+            Spacer(minLength: 0)
         }
-        .presentationDetents([.medium, .large])
     }
 
-    private var filterSheet: some View {
-        NavigationStack {
-            Form {
-                Section("Подборка") {
-                    Toggle("Только бесплатные", isOn: $freeOnly)
-                    Toggle("Сохранённые", isOn: $savedOnly)
-                        .accessibilityIdentifier("events-saved-filter")
-                    Picker("Категория", selection: $category) {
-                        ForEach(categories, id: \.self) { name in
-                            Text(name).tag(name)
-                        }
-                    }
-                }
-                Section("Когда") {
-                    Picker("День", selection: $day) {
-                        ForEach(EventDay.pills) { option in
-                            Text(option.rawValue).tag(option)
-                        }
-                        Text("Выбранная дата").tag(EventDay.date)
-                    }
-                    if day == .date {
-                        DatePicker("Дата", selection: $selectedDate, displayedComponents: .date)
-                            .environment(\.calendar, app.usesBackend ? eventCalendar : .current)
-                            .environment(\.timeZone, app.usesBackend ? eventCalendar.timeZone : .current)
-                    }
-                }
-                Section {
-                    Button("Сбросить фильтры") { resetFilters() }
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .background(SeruColor.background)
-            .tint(SeruColor.action)
-            .navigationTitle("Фильтры событий")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Готово") { showingFilters = false }
-                        .fontWeight(.semibold)
-                }
-            }
-        }
-        .presentationDetents([.medium, .large])
+    private func refreshCurrentDay() async {
+        now = .now
+        if app.usesBackend { await app.refreshEvents() }
     }
 
     private func resetFilters() {
         query = ""
         day = .all
         freeOnly = false
-        savedOnly = false
         category = "Все категории"
     }
 
-    private func eventCountWord(_ count: Int) -> String {
-        if (11...14).contains(count % 100) { return "событий" }
-        switch count % 10 {
-        case 1: return "событие"
-        case 2...4: return "события"
-        default: return "событий"
-        }
-    }
-}
-
-private enum EventDay: String, Identifiable, Hashable {
-    case all = "Все"
-    case today = "Сегодня"
-    case tomorrow = "Завтра"
-    case weekend = "Выходные"
-    case date = "Дата"
-
-    static let pills: [EventDay] = [.all, .today, .tomorrow, .weekend]
-    var id: String { rawValue }
 }
 
 private struct EventFilterPill: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let title: String
     var symbol: String? = nil
     let isSelected: Bool
+    var wrapsTitle = false
     let action: () -> Void
 
     var body: some View {
@@ -485,7 +367,7 @@ private struct EventFilterPill: View {
                     Image(systemName: symbol)
                 }
                 Text(title)
-                    .fixedSize()
+                    .fixedSize(horizontal: !wrapsTitle, vertical: true)
             }
             .font(.caption.weight(.semibold))
             .foregroundStyle(isSelected ? SeruColor.onAction : SeruColor.ink)
@@ -494,6 +376,7 @@ private struct EventFilterPill: View {
             .background(isSelected ? SeruColor.action : SeruColor.surface, in: .capsule)
         }
         .buttonStyle(.plain)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: isSelected)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
@@ -501,44 +384,20 @@ private struct EventFilterPill: View {
 struct EventFeedCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let event: CityEvent
-    let isSaved: Bool
-    let toggleSaved: () -> Void
+    let dateText: String
 
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack(alignment: .topTrailing) {
-                NavigationLink(value: event) {
-                    EventPhoto(event: event, height: 192)
-                        .overlay(alignment: .topLeading) {
-                            EventPriceBadge(event: event)
-                                .padding(12)
-                        }
-                        .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Подробнее: \(event.title)")
-                .accessibilityHint("Открыть информацию о событии")
-                .accessibilityIdentifier("event-photo-\(event.id)")
-
-                Button(action: toggleSaved) {
-                    Image(systemName: isSaved ? "heart.fill" : "heart")
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(SeruColor.action)
-                        .frame(width: 44, height: 44)
-                        .background(.regularMaterial, in: .circle)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(isSaved ? "Убрать событие из сохранённых" : "Сохранить событие")
-                .accessibilityValue(isSaved ? "Сохранено" : "Не сохранено")
-                .accessibilityIdentifier("save-event-\(event.id)")
-                .padding(8)
-            }
-
-            NavigationLink(value: event) {
+        NavigationLink(value: event) {
+            VStack(spacing: 0) {
+                EventPhoto(event: event, height: 192)
+                    .overlay(alignment: .topLeading) {
+                        EventPriceBadge(event: event)
+                            .padding(12)
+                    }
                 VStack(alignment: .leading, spacing: 8) {
                     dateLabel
                     Text(event.title)
-                        .font(.system(.headline, weight: .semibold))
+                        .font(.headline.weight(.semibold))
                         .foregroundStyle(SeruColor.ink)
                         .fixedSize(horizontal: false, vertical: true)
                         .multilineTextAlignment(.leading)
@@ -548,30 +407,26 @@ struct EventFeedCard: View {
                             .foregroundStyle(SeruColor.muted)
                             .multilineTextAlignment(.leading)
                         if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 2) }
-                        HStack(spacing: 2) {
-                            Text("Подробнее")
-                            Image(systemName: "arrow.right")
-                        }
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(SeruColor.action)
+                        Label("Подробнее", systemImage: "arrow.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(SeruColor.action)
                     }
                 }
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(.rect)
             }
-            .buttonStyle(.plain)
-            .accessibilityHint("Открыть информацию о событии")
-            .accessibilityIdentifier("event-detail-\(event.id)")
+            .background(SeruColor.surface)
+            .clipShape(.rect(cornerRadius: 12))
+            .contentShape(.rect(cornerRadius: 12))
+            .shadow(color: Color.black.opacity(0.06), radius: 12, y: 6)
         }
-        .background(SeruColor.surface)
-        .clipShape(.rect(cornerRadius: 12))
-        .contentShape(.rect(cornerRadius: 12))
-        .shadow(color: Color.black.opacity(0.06), radius: 12, y: 6)
+        .buttonStyle(.plain)
+        .accessibilityHint("Открыть информацию о событии")
+        .accessibilityIdentifier("event-detail-\(event.id)")
     }
 
     private var dateLabel: some View {
-        Label(eventDisplayDate(event), systemImage: event.isLive || event.isTomorrow ? "calendar" : "clock")
+        Label(dateText, systemImage: event.isLive || event.isTomorrow ? "calendar" : "clock")
             .font(.caption.weight(.semibold))
             .foregroundStyle(SeruColor.action)
     }
@@ -611,88 +466,225 @@ private struct EventPriceBadge: View {
 }
 
 struct EventDetailView: View {
+    @Environment(AppModel.self) private var app
     let event: CityEvent
-    let isSaved: Bool
-    let toggleSaved: () -> Void
+    @State private var calendarDraft: EventCalendarDraft?
+    @State private var now = Date.now
+
+    private var sessions: [Date] { EventPresentation.sessions(event, now: now) }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 EventPhoto(event: event, height: 250)
-                    .clipShape(.rect(cornerRadius: 20))
+                    .clipShape(.rect(cornerRadius: 16))
                 Text(event.title)
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(SeruColor.ink)
+                    .accessibilityAddTraits(.isHeader)
                 VStack(alignment: .leading, spacing: 14) {
-                    Label(eventDisplayDate(event), systemImage: "calendar")
+                    Label(EventPresentation.cardDate(event, day: .all, selectedDate: now, now: now), systemImage: "calendar")
                     Label(event.venue, systemImage: "mappin.and.ellipse")
-                    if !event.isLive || event.travelMinutes > 0 {
-                        Label("\(event.travelMinutes) мин пешком", systemImage: "figure.walk")
-                    }
                     if event.isFree || !event.price.isEmpty {
                         Label(event.isFree ? "Вход свободный" : event.price, systemImage: "ticket")
                     }
                 }
                 .font(.subheadline)
-                .foregroundStyle(SeruColor.action)
+                .foregroundStyle(SeruColor.ink)
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(18)
-                .seruCard(radius: 16)
+
+                if sessions.count > 1 {
+                    sessionList
+                }
                 Text(event.description)
                     .font(.body)
                     .foregroundStyle(SeruColor.ink)
+                    .textSelection(.enabled)
+                if let venue = EventPresentation.venueURL(event) {
+                    Link(destination: venue) {
+                        Label("Открыть место в Картах", systemImage: "map")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(minHeight: 44)
+                    }
+                    .accessibilityHint("Найти площадку и выбрать маршрут в Картах")
+                    .accessibilityIdentifier("event-venue-map")
+                }
+                if let draft = EventPresentation.calendarDraft(event, now: now) {
+                    PrimaryAction(title: "Добавить в календарь", symbol: "calendar.badge.plus") {
+                        calendarDraft = draft
+                    }
+                    .accessibilityHint("Открыть редактор даты и времени перед добавлением")
+                    .accessibilityIdentifier("event-add-calendar")
+                    Text(sessions.count > 1
+                         ? "Откроется ближайший сеанс. Другой выбери в списке выше. Проверь время перед добавлением."
+                         : "Проверь дату и время в календаре перед добавлением.")
+                        .font(.footnote)
+                        .foregroundStyle(SeruColor.muted)
+                }
                 if event.isLive, let source = event.sourceURL {
                     Link(destination: source) {
                         Label("Подробнее у организатора", systemImage: "arrow.up.right")
                             .font(.subheadline.weight(.semibold))
                             .frame(minHeight: 44)
                     }
-                    .foregroundStyle(SeruColor.action)
                 }
-                PrimaryAction(
-                    title: isSaved ? "Убрать из сохранённых" : "Сохранить событие",
-                    symbol: isSaved ? "heart.fill" : "heart",
-                    action: toggleSaved
-                )
-                .accessibilityValue(isSaved ? "Сохранено" : "Не сохранено")
-                .accessibilityIdentifier("event-save-\(event.id)")
             }
             .padding(16)
             .padding(.bottom, 24)
         }
         .background(SeruColor.background)
+        .tint(SeruColor.action)
         .navigationTitle("Событие")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarVisibility(.visible, for: .navigationBar)
+        .task { now = .now }
+        .sheet(item: $calendarDraft) { draft in
+            EventCalendarEditor(draft: draft) { saved in
+                if saved { app.toast = "Событие добавлено в календарь" }
+            }
+        }
+    }
+
+    private var sessionList: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(EventPresentation.sessionCount(sessions.count))
+                .font(.headline)
+                .foregroundStyle(SeruColor.ink)
+                .accessibilityAddTraits(.isHeader)
+            Text("Нажми на сеанс, чтобы добавить его в календарь.")
+                .font(.footnote)
+                .foregroundStyle(SeruColor.muted)
+                .padding(.bottom, 4)
+            ForEach(sessions, id: \.self) { session in
+                Button {
+                    calendarDraft = EventPresentation.calendarDraft(event, session: session, now: now)
+                } label: {
+                    HStack(spacing: 12) {
+                        Text(EventPresentation.sessionLabel(session))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .multilineTextAlignment(.leading)
+                        Spacer(minLength: 0)
+                        Image(systemName: "calendar.badge.plus")
+                    }
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                }
+                .accessibilityLabel("Добавить сеанс в календарь: \(EventPresentation.sessionLabel(session))")
+            }
+        }
+        .accessibilityIdentifier("event-sessions")
     }
 }
 
-private func eventDisplayDate(_ event: CityEvent) -> String {
-    if event.isLive {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ru_RU")
-        formatter.timeZone = TimeZone(identifier: "Asia/Almaty")
-        formatter.dateFormat = "d MMM yyyy"
-        if !event.sessionDates.isEmpty {
-            let dates = event.sessionDates.sorted()
-            if let first = dates.first, let last = dates.last {
-                let label = formatter.string(from: first)
-                if dates.count > 1 {
-                    return "\(label) — \(formatter.string(from: last)) · \(dates.count) сеансов"
-                }
-                return event.time.isEmpty ? label : "\(label) · \(event.time)"
-            }
-        }
-        if let start = event.startDate ?? event.endDate {
-            let label = formatter.string(from: start)
-            if let end = event.endDate, formatter.string(from: end) != label {
-                return "\(label) — \(formatter.string(from: end))"
-            }
-            return event.time.isEmpty ? label : "\(label) · \(event.time)"
-        }
-        return event.dateLabel.isEmpty ? "Дата уточняется" : event.dateLabel
+private struct EventDatePickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var draftDate: Date
+    let apply: (Date) -> Void
+
+    init(selectedDate: Date, apply: @escaping (Date) -> Void) {
+        _draftDate = State(initialValue: selectedDate)
+        self.apply = apply
     }
-    return event.dateLabel.contains(event.time) || event.time.isEmpty
-        ? event.dateLabel
-        : "\(event.dateLabel) · \(event.time)"
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 18) {
+                    DatePicker("Дата события", selection: $draftDate, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .accessibilityIdentifier("events-date-picker")
+                    PrimaryAction(title: "Показать события", symbol: "calendar") {
+                        apply(draftDate)
+                        dismiss()
+                    }
+                    .accessibilityIdentifier("events-apply-date")
+                }
+                .padding(20)
+            }
+            .background(SeruColor.background)
+            .navigationTitle("Выбрать дату")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Закрыть") { dismiss() }
+                        .frame(minHeight: 44)
+                }
+            }
+        }
+        .environment(\.calendar, EventPresentation.calendar)
+        .environment(\.timeZone, EventPresentation.calendar.timeZone)
+        .presentationDetents([.medium, .large])
+    }
+}
+
+private struct EventFiltersSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let categories: [String]
+    @State private var freeOnly: Bool
+    @State private var category: String
+    @State private var day: EventDay
+    @State private var selectedDate: Date
+    let apply: (Bool, String, EventDay, Date) -> Void
+
+    init(categories: [String], freeOnly: Bool, category: String, day: EventDay,
+         selectedDate: Date, apply: @escaping (Bool, String, EventDay, Date) -> Void) {
+        self.categories = categories
+        _freeOnly = State(initialValue: freeOnly)
+        _category = State(initialValue: category)
+        _day = State(initialValue: day)
+        _selectedDate = State(initialValue: selectedDate)
+        self.apply = apply
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Подборка") {
+                    Toggle("Только бесплатные", isOn: $freeOnly)
+                    Picker("Категория", selection: $category) {
+                        ForEach(categories, id: \.self) { name in Text(name).tag(name) }
+                    }
+                }
+                Section("Когда") {
+                    Picker("День", selection: $day) {
+                        ForEach(EventDay.pills) { option in Text(option.rawValue).tag(option) }
+                        Text("Выбранная дата").tag(EventDay.date)
+                    }
+                    if day == .date {
+                        DatePicker("Дата", selection: $selectedDate, displayedComponents: .date)
+                    }
+                }
+                Section {
+                    Button("Сбросить фильтры") {
+                        freeOnly = false
+                        category = "Все категории"
+                        day = .all
+                    }
+                    .frame(minHeight: 44)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(SeruColor.background)
+            .navigationTitle("Фильтры событий")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Отмена") { dismiss() }.frame(minHeight: 44)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Готово") {
+                        apply(freeOnly, category, day, selectedDate)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                    .frame(minHeight: 44)
+                }
+            }
+        }
+        .tint(SeruColor.action)
+        .environment(\.calendar, EventPresentation.calendar)
+        .environment(\.timeZone, EventPresentation.calendar.timeZone)
+        .presentationDetents([.medium, .large])
+    }
 }

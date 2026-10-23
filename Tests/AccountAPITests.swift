@@ -15,6 +15,19 @@ struct AccountAPITests {
         return BackendAPI(baseURL: URL(string: "https://account.example")!, session: URLSession(configuration: configuration), sessionVault: vault)
     }
 
+    @Test func savedSnapshotPreservesSuppliedContactAndAccessibilityFacts() throws {
+        var place = DemoData.places[0]
+        place.address = "Кунаева, 1"
+        place.phone = "+77170000000"
+        place.accessibility = "yes"
+        let encoded = try JSONEncoder().encode(SavedPlaceSnapshot(place: place))
+        let restored = try JSONDecoder().decode(SavedPlaceSnapshot.self, from: encoded).place(id: place.id)
+        #expect(restored.address == place.address)
+        #expect(restored.phone == place.phone)
+        #expect(restored.accessibility == place.accessibility)
+        #expect(restored.subtitle == place.address)
+    }
+
     @Test func currentUserDistinguishesGuestFromUserWithoutCaching() async throws {
         let guest = client { request in
             #expect(request.url?.path == "/api/auth/me")

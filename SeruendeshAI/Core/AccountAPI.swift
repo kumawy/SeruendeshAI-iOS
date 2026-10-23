@@ -71,7 +71,9 @@ struct SavedPlaceSnapshot: Codable, Hashable, Sendable {
         let icon = Self.webIcon(place.symbol)
         categoryKey = icon.category; iconKey = icon.icon
         if let coordinate = place.coordinate, coordinate.isValid { lat = coordinate.latitude; lon = coordinate.longitude }
-        address = clipped(place.subtitle, 1000)
+        address = clipped(place.address ?? place.subtitle, 1000)
+        phone = clipped(place.phone, 300)
+        accessibility = clipped(place.accessibility, 300)
         why = clipped(place.reason, 2000)
         status = place.hours == "Часы уточняй" ? nil : clipped(place.hours, 300)
         distance = clipped(place.distance, 300)
@@ -105,6 +107,7 @@ struct SavedPlaceSnapshot: Codable, Hashable, Sendable {
         if result.imageURL != nil, let photo { result.imageCredit = [photo.author, photo.license].filter { !$0.isEmpty }.joined(separator: " · ") }
         result.sourceURL = snapshotURL(descriptionUrl) ?? snapshotURL(url)
         result.websiteURL = snapshotURL(website); result.descriptionCredit = descriptionSource
+        result.address = address; result.phone = phone; result.accessibility = accessibility
         return result
     }
 

@@ -391,6 +391,88 @@ struct AccountStoreTests {
         #expect(await backend.writeOperations == ["save:garden"])
     }
 
+    @Test func refreshingACachedSessionVerifiesIdentityBeforeReplacingFavorites() async {
+        let defaults = UserDefaults(suiteName: "seru.cache.identity.\(UUID().uuidString)")!
+        let backend = AccountTestBackend()
+        await backend.setSession(.first, saved: [Self.saved(Self.park)])
+        await AccountStore(backend: backend, defaults: defaults).restore()
+        await backend.setSession(.second, saved: [Self.saved(Self.coffee)])
+        let reopened = AccountStore(backend: backend, defaults: defaults)
+        await backend.setFailure(.restore, .network(.notConnectedToInternet))
+        await reopened.refreshSaved()
+        #expect(reopened.user?.id == "user-a")
+        #expect(reopened.savedPlaces.map(\.id) == ["garden"])
+        #expect(reopened.isShowingCachedData)
+        await backend.setFailure(.restore, nil)
+        await reopened.refreshSaved()
+        #expect(reopened.user?.id == "user-b")
+        #expect(reopened.savedPlaces.map(\.id) == ["coffee"])
+        #expect(!reopened.isShowingCachedData)
+    }
+
+    @Test func cachedFavoritesSurviveAnOfflineColdRestore() async {
+        let suite = "account-cache-\(UUID())"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let backend = AccountTestBackend()
+        await backend.setSession(.first, saved: [Self.saved(Self.park)])
+        let original = AccountStore(backend: backend, defaults: defaults)
+        await original.restore()
+        await backend.setFailure(.restore, .network(.notConnectedToInternet))
+        let reopened = AccountStore(backend: backend, defaults: defaults)
+        #expect(reopened.user?.id == "user-a")
+        #expect(reopened.savedPlaces.map(\.id) == ["garden"])
+        #expect(reopened.isShowingCachedData)
+        await reopened.restore()
+        #expect(reopened.savedPlaces.map(\.id) == ["garden"])
+        #expect(reopened.isShowingCachedData)
+        #expect(reopened.error != nil)
+    }
+
+    @Test func logoutAndAccountSwitchNeverRestoreAnotherAccountsFavorites() async {
+        let suite = "account-cache-\(UUID())"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let backend = AccountTestBackend()
+        await backend.setSession(.first, saved: [Self.saved(Self.park)])
+        let store = AccountStore(backend: backend, defaults: defaults)
+        await store.restore()
+        #expect(await store.signOut())
+        #expect(AccountStore(backend: backend, defaults: defaults).user == nil)
+        await backend.setSession(.second, saved: [Self.saved(Self.coffee)])
+        await store.restore()
+        let reopened = AccountStore(backend: backend, defaults: defaults)
+        #expect(reopened.user?.id == "user-b")
+        #expect(reopened.savedPlaces.map(\.id) == ["coffee"])
+        await backend.setFailure(.restore, .http(status: 401, code: "session_expired"))
+        await reopened.restore()
+        #expect(reopened.user == nil)
+        #expect(reopened.savedPlaces.isEmpty)
+        #expect(AccountStore(backend: backend, defaults: defaults).user == nil)
+    }
+
+    @Test func failedRefreshKeepsCacheUntilSuccessfulEmptyResponse() async {
+        let suite = "account-cache-\(UUID())"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let backend = AccountTestBackend()
+        await backend.setSession(.first, saved: [Self.saved(Self.park)])
+        let original = AccountStore(backend: backend, defaults: defaults)
+        await original.restore()
+        await backend.setFailure(.saved, .network(.notConnectedToInternet))
+        let reopened = AccountStore(backend: backend, defaults: defaults)
+        await reopened.restore()
+        #expect(reopened.savedPlaces.map(\.id) == ["garden"])
+        #expect(reopened.isShowingCachedData)
+        await backend.setFailure(.saved, nil)
+        await backend.setSaved([])
+        await reopened.refreshSaved()
+        #expect(reopened.savedPlaces.isEmpty)
+        #expect(reopened.hasLoadedSaved)
+        #expect(!reopened.isShowingCachedData)
+        #expect(AccountStore(backend: backend, defaults: defaults).savedPlaces.isEmpty)
+    }
+
     private static var park: Place { DemoData.places[0] }
     private static var coffee: Place { DemoData.places[1] }
     private static func saved(_ place: Place) -> APISavedPlace { APISavedPlace(id: place.id, snapshot: SavedPlaceSnapshot(place: place)) }

@@ -6,6 +6,11 @@ struct ProfileView: View {
     @State private var accountOpen = false
     @State private var confirmDeletion = false
     @State private var accountActionStarted = false
+    @State private var journalOpen = false
+    @State private var returnToWalk = false
+    @State private var localName = ""
+    @State private var nameEditorOpen = false
+    @State private var editedName = ""
 
     var body: some View {
         @Bindable var app = app
@@ -15,7 +20,7 @@ struct ProfileView: View {
                     HStack(spacing: 14) {
                         AvatarPlaceholder(size: 48).frame(width: 56, height: 56)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(app.account.user?.name ?? "Моя прогулка")
+                            Text(localName.isEmpty ? (app.account.user?.name ?? "Моя прогулка") : localName)
                                 .font(.headline)
                                 .accessibilityIdentifier("profile-user-name")
                             if let user = app.account.user {
@@ -35,6 +40,17 @@ struct ProfileView: View {
                             .disabled(app.account.isRestoring)
                             .accessibilityIdentifier("profile-sign-in")
                     }
+                    Button("Как тебя называть", systemImage: "pencil") {
+                        editedName = localName
+                        nameEditorOpen = true
+                    }
+                    .accessibilityIdentifier("profile-edit-name")
+                }
+                Section {
+                    Button("Журнал прогулок", systemImage: "clock.arrow.circlepath") { journalOpen = true }
+                        .accessibilityIdentifier("profile-journal")
+                } footer: {
+                    Text("Прогулки, фото и избранные места на устройстве сохраняются между запусками. Журнал остаётся на этом устройстве и не синхронизируется с аккаунтом.")
                 }
                 Section("Оформление") {
                     Picker("Тема", selection: $app.theme) {
@@ -43,6 +59,8 @@ struct ProfileView: View {
                 }
                 if app.account.user != nil {
                     Section {
+                        Button("Сменить пароль", systemImage: "key") { accountOpen = true }
+                            .accessibilityIdentifier("profile-reset-password")
                         Button {
                             accountActionStarted = true
                             Task { @MainActor in _ = await app.account.signOut() }
@@ -89,6 +107,20 @@ struct ProfileView: View {
                         .disabled(app.account.isWorking)
                 }
             }
+            .task(id: app.account.user?.id) {
+                localName = UserDefaults.standard.string(forKey: nameKey) ?? ""
+            }
+            .alert("Как тебя называть?", isPresented: $nameEditorOpen) {
+                TextField("Имя", text: $editedName)
+                    .textInputAutocapitalization(.words)
+                Button("Сохранить") {
+                    localName = String(editedName.split(whereSeparator: \.isWhitespace).joined(separator: " ").prefix(60))
+                    UserDefaults.standard.set(localName, forKey: nameKey)
+                }
+                Button("Отмена", role: .cancel) {}
+            } message: {
+                Text("Имя для профиля на этом устройстве. Пустое поле вернёт исходное имя.")
+            }
             .confirmationDialog("Удалить аккаунт?", isPresented: $confirmDeletion, titleVisibility: .visible) {
                 Button("Удалить аккаунт", role: .destructive) {
                     accountActionStarted = true
@@ -102,7 +134,14 @@ struct ProfileView: View {
         .tint(SeruColor.action)
         .interactiveDismissDisabled(app.account.isWorking)
         .sheet(isPresented: $accountOpen) {
-            AccountView()
+            AccountView(requestReset: app.account.user != nil)
+        }
+        .sheet(isPresented: $journalOpen, onDismiss: {
+            if returnToWalk { dismiss() }
+        }) {
+            JournalView(onOpen: { returnToWalk = true })
         }
     }
+
+    private var nameKey: String { "seru.profile.name." + (app.account.user?.id ?? "guest") }
 }

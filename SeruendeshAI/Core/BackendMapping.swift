@@ -56,6 +56,10 @@ enum BackendMapping {
         }
         place.sourceURL = value.descriptionURL ?? value.sourceURL
         place.websiteURL = value.website
+        place.address = value.address
+        place.phone = value.phone
+        place.accessibility = value.accessibility == "unknown" ? nil : value.accessibility
+        place.prices = value.prices.isEmpty ? nil : value.prices
         place.descriptionCredit = value.descriptionAttribution.map(\.attribution).filter { !$0.isEmpty }.joined(separator: "\n")
         return place
     }
@@ -103,6 +107,9 @@ enum BackendMapping {
             duration: value.totalMin, distance: distance(value.legs.reduce(0) { $0 + $1.distanceM }), placeIDs: ordered
         )
         route.isLive = true
+        route.returnMinutes = value.backMin
+        route.returnsToStart = value.returnsToStart
+        route.fitsBudget = value.fitsBudget
         route.originLabel = response.usedContext?.location?.label ?? response.usedContext?.locationLabel
         if let location = response.usedContext?.location {
             route.originCoordinate = GeoPoint(latitude: location.lat, longitude: location.lon)
