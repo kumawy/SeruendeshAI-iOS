@@ -83,7 +83,7 @@ final class ProfilePolishUITests: XCTestCase {
         try tap(app.navigationBars.buttons["Готово"])
     }
 
-    func testPhotoCreditsAreReachableFromProfile() throws {
+    func testProfileOmitsPhotoCreditsAndRetainsJournalThemeAndStorage() throws {
         continueAfterFailure = false
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
@@ -93,21 +93,22 @@ final class ProfilePolishUITests: XCTestCase {
         defer { app.terminate() }
 
         try openProfile(app)
-        let credits = app.buttons["profile-photo-credits"]
-        for _ in 0..<5 {
-            if credits.exists && credits.isHittable { break }
+        XCTAssertTrue(app.buttons["profile-journal"].isHittable)
+        XCTAssertTrue(app.segmentedControls["profile-theme-picker"].isHittable)
+        XCTAssertFalse(app.buttons["profile-photo-credits"].exists)
+        XCTAssertFalse(app.buttons["Фотографии"].exists)
+
+        let storage = app.staticTexts["profile-local-storage"]
+        for _ in 0..<3 {
+            if storage.exists && storage.isHittable { break }
             app.scrollViews["profile-content"].swipeUp()
         }
-        try tap(credits)
-        XCTAssertTrue(app.navigationBars["Фотографии"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Matti Blume"].isHittable)
-        let license = app.links["CC BY-SA 4.0"].firstMatch.exists
-            ? app.links["CC BY-SA 4.0"].firstMatch
-            : app.buttons["CC BY-SA 4.0"].firstMatch
-        XCTAssertTrue(license.isHittable)
-        capture("photo-credits", app)
-        try tap(app.navigationBars["Фотографии"].buttons["Готово"])
-        XCTAssertTrue(app.navigationBars["Профиль"].waitForExistence(timeout: 3))
+        XCTAssertTrue(storage.isHittable)
+        XCTAssertTrue(storage.label.contains("хранятся на этом устройстве"))
+        XCTAssertFalse(app.buttons["profile-photo-credits"].exists)
+        XCTAssertFalse(app.buttons["Фотографии"].exists)
+        capture("profile-without-photo-credits", app)
+        try tap(app.navigationBars["Профиль"].buttons["Готово"])
     }
 
     private func openProfile(_ app: XCUIApplication) throws {

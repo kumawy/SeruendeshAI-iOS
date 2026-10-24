@@ -42,3 +42,9 @@
 - Visual inspection caught a profile sheet that did not repaint on live theme changes: fixed local presentation preference and added actual colour-scheme assertions. Fresh Profile tests passed in regular/AX text.
 - Fresh independent visual reviewer inspected nine screenshots and requested one material fix: empty Events search placeholder contrast. Explicit semantic muted prompt implemented. Both-theme journeys passed; the reviewer measured6.89:1 dark /5.17:1 light, scored the fix resolved and returned ship for the verdict pass.
 - Final evidence:169 SwiftPackage tests,185 iOS unit tests and14 distinct UI journeys passed across focused runs. Latest app compiled in `.build/city-guide-contrast-final.xcresult`. Native phone screenshots are retained locally in `.impeccable/review`; source-matched design tokens and photo attribution are committed as project documentation.
+
+## Profile and splash restoration
+- User requested removing “Фотографии” from Profile and restoring the original splash without its spiral. Removed the row and its unused sheet; bundled photo attribution and JPEG metadata remain.
+- Restored the full one-shot mascot greeting with the existing bounded APNG player, at the original visible size:1.8s greeting and a direct0.25s fade. This supersedes the one-second static greeting above. Kept the0.14s static Reduce Motion path, mounted root, session gate and background cancellation.
+- Updated pacing checks first and observed the shortened greeting fail. Final verification:169 SwiftPackage tests,185 iOS unit tests and all11 selected UI cases passed (8 splash,3 profile), `.build/splash-restore.xcresult`.
+- Inspected a fresh native launch recording in `.impeccable/review/splash-restored.mp4`. Independent review confirmed the full gesture settles before the direct crossfade, with no cut, size jump or spiral. Latest build installed on the main iPhone17Pro simulator.

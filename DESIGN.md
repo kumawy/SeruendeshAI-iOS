@@ -239,7 +239,7 @@ The system is predominantly flat. Neutral tones and fine lines distinguish conte
 
 State changes use `SeruMotion`: panel spring (response 0.3 s, damping 0.9), scroll ease-out (0.18 s), feedback ease-out (0.18 s; 0.12 s under Reduce Motion). `SeruPressStyle` lowers opacity to 0.86 and scales to 0.985 over 0.14 s while pressed; Reduce Motion removes its scale and animation. Event filter selection uses a short ease-out (0.16 s) when motion is allowed. Avoid repeated row entrances.
 
-The standard splash remains 1 s: greeting (0.75 s), reveal (0.25 s). Its existing Reduce Motion path uses a short hold (0.02 s) and fade (0.12 s). Do not extend the splash to wait for account restoration, network data or artwork.
+The standard splash restores the full mascot wave (1.8 s), followed directly by a 0.25 s fade into the app. No spiral or expanding circle. Its Reduce Motion path uses a static mascot, short hold (0.02 s) and fade (0.12 s). Do not extend the splash to wait for account restoration, network data or artwork.
 
 ## Shapes
 
@@ -292,7 +292,7 @@ Preserve the supplied Seru mascot assets and scene-specific playback. Greetings,
 - Do use plain rows and fine dividers for account, saved-place and stop information.
 - Do keep controls at least 44 pt, expose VoiceOver actions and let accessibility text reflow.
 - Do keep the map and ordered stops in one walk workspace and preserve approximate-route labels.
-- Do preserve mascot assets, local-data behavior and the one-second standard splash sequence.
+- Do preserve mascot assets, local-data behavior and the full greeting with a direct fade.
 
 ### Don't:
 

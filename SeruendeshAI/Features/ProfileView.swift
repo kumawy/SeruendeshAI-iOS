@@ -12,7 +12,6 @@ struct ProfileView: View {
     @State private var localName = ""
     @State private var nameEditorOpen = false
     @State private var editedName = ""
-    @State private var photoCreditsOpen = false
 
     var body: some View {
         @Bindable var app = app
@@ -59,12 +58,6 @@ struct ProfileView: View {
                         .foregroundStyle(SeruColor.muted)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("profile-local-storage")
-
-                    Button { photoCreditsOpen = true } label: {
-                        ProfileActionLabel(title: "Фотографии", showsChevron: true)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("profile-photo-credits")
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 28)
@@ -130,9 +123,6 @@ struct ProfileView: View {
             if returnToWalk { dismiss() }
         }) {
             JournalView(onOpen: { returnToWalk = true })
-        }
-        .sheet(isPresented: $photoCreditsOpen) {
-            PhotoCreditsView()
         }
     }
 

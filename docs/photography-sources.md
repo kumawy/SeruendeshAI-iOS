@@ -12,7 +12,7 @@ Reviewed and downloaded on 2026-10-24. These photographs are bundled with the ap
 | Площадь у Байтерека — `plan-asset-001` | [Astana-2021-10 - 12.jpg](https://commons.wikimedia.org/wiki/File:Astana-2021-10_-_12.jpg) — Vyacheslav Bukharov | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) | Resized to a maximum edge of 1,400 px, JPEG compression, no color grading or generated content; card layouts crop as needed. |
 | Набережная Ишима — `saved-asset-002` | [Ishim River, Astana.jpg](https://commons.wikimedia.org/wiki/File:Ishim_River,_Astana.jpg) — Nikolamikovic82 | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/deed.en) | Resized to a maximum edge of 1,400 px, JPEG compression, no color grading or generated content; card layouts crop as needed. |
 
-The attribution records are also in `SeruendeshAI/Resources/PhotoCredits.json` for the in-app photo credits screen. Author, license, and source are embedded in each replacement JPEG’s metadata. The CC BY-SA photographs and these resized versions remain available under their listed license; the image license does not change the app’s source-code license.
+The attribution records are preserved in this document and the bundled `SeruendeshAI/Resources/PhotoCredits.json`. Author, license, and source are embedded in each replacement JPEG’s metadata. The CC BY-SA photographs and these resized versions remain available under their listed license; the image license does not change the app’s source-code license.
 
 ## Selection and mapping
 
@@ -24,7 +24,7 @@ The attribution records are also in `SeruendeshAI/Resources/PhotoCredits.json` f
 
 ## Illustrative covers for local events
 
-The local events are fictional examples. Their new photographic covers are thematic illustrations, not evidence of the advertised show, date, or Astana venue. In-app credits describe them as illustrations.
+The local events are fictional examples. Their new photographic covers are thematic illustrations, not evidence of the advertised show, date, or Astana venue. The bundled attribution metadata and records below describe them as illustrations.
 
 - `events-asset-000` — [Jazz-concert AMVJ gebouw te Rotterdam, Bestanddeelnr 910-9747.jpg](https://commons.wikimedia.org/wiki/File:Jazz-concert_AMVJ_gebouw_te_Rotterdam,_Bestanddeelnr_910-9747.jpg), Herbert Behrens / Anefo, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Resized/JPEG compressed. Уменьшено и сжато в JPEG. Тематическая иллюстрация, не фотография указанного локального события, даты или площадки.
 - `events-asset-001` — [Interior - Statens Museum for Kunst - DSC08266.JPG](https://commons.wikimedia.org/wiki/File:Interior_-_Statens_Museum_for_Kunst_-_DSC08266.JPG), Daderot, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Resized/JPEG compressed. Уменьшено и сжато в JPEG. Тематическая иллюстрация, не фотография указанного локального события, даты или площадки.

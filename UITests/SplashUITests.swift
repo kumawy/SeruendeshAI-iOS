@@ -161,7 +161,7 @@ final class SplashUITests: XCTestCase {
         app.launch()
         defer { app.terminate() }
 
-        // XCUIApplication.launch() waits for quiescence and can return after the quick greeting.
+        // XCUIApplication.launch() waits for quiescence and can return after the greeting.
         // Real timing is covered by coordinator tests; video captures verify the crossfade.
         try waitForMainScreen(in: app)
         XCTAssertFalse(element("seru-splash-overlay", in: app).exists)

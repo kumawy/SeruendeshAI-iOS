@@ -10,15 +10,16 @@ struct SeruSplashOverlay: View {
             ZStack {
                 SeruColor.background.ignoresSafeArea()
                 if let artwork {
-                    Image(uiImage: artwork)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: min(236, geometry.size.width * 0.58),
-                               height: min(236, geometry.size.height * 0.6))
-                        .scaleEffect(coordinator.usesReducedMotion || coordinator.phase != .preparing ? 1 : 0.985)
-                        .animation(coordinator.usesReducedMotion ? nil : .easeOut(duration: 0.26),
-                                   value: coordinator.phase == .preparing)
-                        .accessibilityHidden(true)
+                    let side = min(328, geometry.size.width * 0.82, geometry.size.height * 0.65)
+                    Group {
+                        if coordinator.usesReducedMotion {
+                            Image(uiImage: artwork).resizable().scaledToFit()
+                        } else {
+                            SeruMascotAnimation(scene: .greeting)
+                        }
+                    }
+                    .frame(width: side, height: side)
+                    .accessibilityHidden(true)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -81,8 +82,8 @@ private enum SplashArtwork {
         #if DEBUG
         if UserDefaults.standard.bool(forKey: "seru.splash.missingAssets") { return nil }
         #endif
-        // The asset catalog caches one existing image. No PNG sequence, shader,
-        // frame predecode, or asynchronous resource preparation delays launch.
+        // A still is available immediately while the shared bounded player loads
+        // the greeting. Playback never delays the coordinator's launch deadline.
         return UIImage(named: "SeruMascot")
     }
 }

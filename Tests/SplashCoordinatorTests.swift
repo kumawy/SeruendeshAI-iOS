@@ -8,15 +8,17 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct SplashCoordinatorTests {
-    // A backend wait or a restored long animation would miss the launch deadline.
-    @Test func ordinaryLaunchReleasesTheMountedRootWithinItsQuickBudget() async throws {
+    // The full wave remains visible, with no spiral or network wait after it.
+    @Test func ordinaryLaunchKeepsTheGreetingVisibleThenReleasesTheMountedRoot() async throws {
         let gate = SplashSessionGate()
         let coordinator = SplashCoordinator(gate: gate)
         coordinator.start(reduceMotion: false)
         #expect(coordinator.phase == .greeting)
         #expect(gate.hasStarted && !gate.hasCompleted)
 
-        try await waitUntilDone(coordinator, timeout: 1.3)
+        try await Task.sleep(for: .milliseconds(1_550))
+        #expect(coordinator.phase == .greeting)
+        try await waitUntilDone(coordinator, timeout: 0.85)
         #expect(gate.hasCompleted)
         #expect(coordinator.revealProgress == 1)
     }
