@@ -29,13 +29,15 @@ final class ProfilePolishUITests: XCTestCase {
         try tap(app.alerts.buttons["Сохранить"])
         XCTAssertEqual(app.staticTexts["profile-user-name"].label, "Алина")
 
-        try tap(app.buttons["profile-theme-light"])
-        XCTAssertTrue(app.buttons["profile-theme-light"].isSelected)
+        let lightTheme = app.segmentedControls["profile-theme-picker"].buttons["Светлая"]
+        try tap(lightTheme)
+        XCTAssertTrue(lightTheme.isSelected)
+        try expectLightAppearance(app)
         capture("profile-refined-light", app)
         try tap(close)
         try tap(app.buttons["saved-sign-in"])
         XCTAssertEqual(app.staticTexts["profile-user-name"].label, "Алина")
-        XCTAssertTrue(app.buttons["profile-theme-light"].isSelected)
+        XCTAssertTrue(lightTheme.isSelected)
 
         app.terminate()
         if let index = app.launchArguments.firstIndex(of: "-seru.theme") {
@@ -44,7 +46,7 @@ final class ProfilePolishUITests: XCTestCase {
         app.launch()
         try openProfile(app)
         XCTAssertEqual(app.staticTexts["profile-user-name"].label, "Алина")
-        XCTAssertTrue(app.buttons["profile-theme-light"].isSelected)
+        XCTAssertTrue(lightTheme.isSelected)
 
         // Leave the guest name as it was before this simulator test.
         try tap(app.buttons["profile-edit-name"])
@@ -53,7 +55,7 @@ final class ProfilePolishUITests: XCTestCase {
         restoredField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "Алина".count))
         if oldName != "Имя" { restoredField.typeText(oldName) }
         try tap(app.alerts.buttons["Сохранить"])
-        try tap(app.buttons["profile-theme-dark"])
+        try tap(app.segmentedControls["profile-theme-picker"].buttons["Тёмная"])
     }
 
     func testProfileRemainsReadableAtLargestTextSize() throws {
@@ -75,15 +77,50 @@ final class ProfilePolishUITests: XCTestCase {
         }
         try tap(theme)
         XCTAssertTrue(theme.isSelected)
+        try expectLightAppearance(app)
         XCTAssertGreaterThanOrEqual(theme.frame.height, 44)
         capture("profile-refined-accessibility", app)
         try tap(app.navigationBars.buttons["Готово"])
+    }
+
+    func testPhotoCreditsAreReachableFromProfile() throws {
+        continueAfterFailure = false
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication()
+        app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", "dark",
+                                "-seru.journal.storeID", UUID().uuidString]
+        app.launch()
+        defer { app.terminate() }
+
+        try openProfile(app)
+        let credits = app.buttons["profile-photo-credits"]
+        for _ in 0..<5 {
+            if credits.exists && credits.isHittable { break }
+            app.scrollViews["profile-content"].swipeUp()
+        }
+        try tap(credits)
+        XCTAssertTrue(app.navigationBars["Фотографии"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Matti Blume"].isHittable)
+        let license = app.links["CC BY-SA 4.0"].firstMatch.exists
+            ? app.links["CC BY-SA 4.0"].firstMatch
+            : app.buttons["CC BY-SA 4.0"].firstMatch
+        XCTAssertTrue(license.isHittable)
+        capture("photo-credits", app)
+        try tap(app.navigationBars["Фотографии"].buttons["Готово"])
+        XCTAssertTrue(app.navigationBars["Профиль"].waitForExistence(timeout: 3))
     }
 
     private func openProfile(_ app: XCUIApplication) throws {
         try tap(app.tabBars.buttons["Избранное"])
         try tap(app.buttons["saved-sign-in"])
         XCTAssertTrue(app.navigationBars["Профиль"].waitForExistence(timeout: 5))
+    }
+
+    private func expectLightAppearance(_ app: XCUIApplication) throws {
+        let content = app.scrollViews["profile-content"]
+        let appearance = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "Светлая тема"), object: content)
+        XCTAssertEqual(XCTWaiter.wait(for: [appearance], timeout: 5), .completed,
+                       "Changing theme must update the already-presented profile, not only the window behind it")
     }
 
     private func tap(_ element: XCUIElement, file: StaticString = #filePath, line: UInt = #line) throws {

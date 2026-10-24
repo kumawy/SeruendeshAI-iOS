@@ -19,24 +19,18 @@ struct AppRootView: View {
                         mascotActive: presentation == nil && !splashIsPresented
                     )
                 } label: {
-                    Image(app.tab == .walk ? "NavCompassActive" : "NavCompassInactive")
-                        .renderingMode(.original)
-                        .accessibilityLabel("Прогулка")
+                    Label("Прогулка", systemImage: "map")
                 }
                 Tab(value: AppTab.events) {
                     EventsView(mascotActive: presentation == nil && !splashIsPresented,
                                onProfile: { presentation = .profile })
                 } label: {
-                    Image(app.tab == .events ? "NavTicketActive" : "NavTicketInactive")
-                        .renderingMode(.original)
-                        .accessibilityLabel("События")
+                    Label("События", systemImage: "ticket")
                 }
                 Tab(value: AppTab.saved) {
                     SavedView(mascotActive: presentation == nil && !splashIsPresented)
                 } label: {
-                    Image(app.tab == .saved ? "NavHeartActive" : "NavHeartInactive")
-                        .renderingMode(.original)
-                        .accessibilityLabel("Избранное")
+                    Label("Избранное", systemImage: "heart")
                 }
             }
             .tint(SeruColor.action)

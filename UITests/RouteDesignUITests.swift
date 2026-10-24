@@ -22,31 +22,31 @@ final class RouteDesignUITests: XCTestCase {
         capture("chat-toolbar-\(theme)-\(largeText)", app)
         try tap(app.buttons["open-current-plan"])
         XCTAssertTrue(app.staticTexts["Твоя прогулка"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.descendants(matching: .any)["plan-map-preview"].firstMatch.exists)
-        capture("plan-design-\(theme)-\(largeText)", app)
-        let layout = XCTAttachment(string: app.debugDescription)
-        layout.name = "plan-layout-\(theme)-\(largeText)"
-        layout.lifetime = .keepAlways
-        add(layout)
+        XCTAssertTrue(app.descendants(matching: .any)["map-background"].firstMatch.exists)
+        capture("unified-plan-\(theme)-\(largeText)", app)
+        let toggle = app.buttons["plan-toggle-view"]
+        if !largeText { try tap(toggle) }
         let stop = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "plan-stop-")).firstMatch
         try reveal(stop, app)
         XCTAssertTrue(stop.isHittable)
-        if largeText { capture("plan-stops-accessibility", app) }
-        let mapButton = app.buttons["plan-route"]
-        for _ in 0..<6 {
-            if mapButton.isHittable { break }
-            app.scrollViews.firstMatch.swipeDown()
+        capture("unified-stops-\(theme)-\(largeText)", app)
+        if theme == "dark" && !largeText {
+            try tap(stop)
+            XCTAssertTrue(app.buttons["build-route"].waitForExistence(timeout: 5))
+            try tap(app.buttons["walk-back"])
+            XCTAssertEqual(toggle.label, "Показать карту прогулки", "Returning from a stop must preserve the expanded list")
         }
-        try tap(mapButton)
-        XCTAssertTrue(app.staticTexts["route-title"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["route-title"].exists, "Viewing stops must not push a duplicate route screen")
+        try tap(toggle)
         XCTAssertTrue(app.descendants(matching: .any)["map-background"].firstMatch.exists)
-        capture("route-map-design-\(theme)-\(largeText)", app)
-        let apple = app.buttons["route-open-apple"]
+        capture("unified-map-\(theme)-\(largeText)", app)
+        try tap(toggle)
+        let apple = app.buttons["plan-open-full-route"]
         try reveal(apple, app)
         XCTAssertTrue(apple.isHittable)
         capture("route-actions-\(theme)-\(largeText)", app)
         try tap(app.buttons["walk-back"])
-        XCTAssertTrue(app.staticTexts["Твоя прогулка"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["chat-options"].waitForExistence(timeout: 5))
     }
 
     private func reveal(_ element: XCUIElement, _ app: XCUIApplication) throws {

@@ -1,0 +1,100 @@
+[
+  {
+    "title": "Ботанический сад Астаны",
+    "originalTitle": "Botanical garden, Astana (P1190702).jpg",
+    "author": "Matti Blume",
+    "license": "CC BY-SA 4.0",
+    "sourceURL": "https://commons.wikimedia.org/wiki/File:Botanical_garden,_Astana_(P1190702).jpg",
+    "licenseURL": "https://creativecommons.org/licenses/by-sa/4.0/deed.en",
+    "assetNames": [
+      "results-asset-001",
+      "saved-asset-000"
+    ],
+    "changes": "Изображение уменьшено и сжато в JPEG; интерфейс может кадрировать его по размеру карточки."
+  },
+  {
+    "title": "Бульвар Нуржол",
+    "originalTitle": "Nurjol Boulevard, Astana.jpg",
+    "author": "Bernard Gagnon",
+    "license": "CC0 1.0",
+    "sourceURL": "https://commons.wikimedia.org/wiki/File:Nurjol_Boulevard,_Astana.jpg",
+    "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "assetNames": [
+      "results-asset-002",
+      "saved-asset-001"
+    ],
+    "changes": "Изображение уменьшено и сжато в JPEG; интерфейс может кадрировать его по размеру карточки."
+  },
+  {
+    "title": "Парк Влюблённых",
+    "originalTitle": "Fountain in Lovers Park.jpg",
+    "author": "Bernard Gagnon",
+    "license": "CC0 1.0",
+    "sourceURL": "https://commons.wikimedia.org/wiki/File:Fountain_in_Lovers_Park.jpg",
+    "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "assetNames": [
+      "results-asset-003"
+    ],
+    "changes": "Изображение уменьшено и сжато в JPEG; интерфейс может кадрировать его по размеру карточки."
+  },
+  {
+    "title": "Площадь у Байтерека",
+    "originalTitle": "Astana-2021-10 - 12.jpg",
+    "author": "Vyacheslav Bukharov",
+    "license": "CC BY-SA 4.0",
+    "sourceURL": "https://commons.wikimedia.org/wiki/File:Astana-2021-10_-_12.jpg",
+    "licenseURL": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetNames": [
+      "plan-asset-001"
+    ],
+    "changes": "Изображение уменьшено и сжато в JPEG; интерфейс может кадрировать его по размеру карточки."
+  },
+  {
+    "title": "Набережная Ишима",
+    "originalTitle": "Ishim River, Astana.jpg",
+    "author": "Nikolamikovic82",
+    "license": "CC0 1.0",
+    "sourceURL": "https://commons.wikimedia.org/wiki/File:Ishim_River,_Astana.jpg",
+    "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "assetNames": [
+      "saved-asset-002"
+    ],
+    "changes": "Изображение уменьшено и сжато в JPEG; интерфейс может кадрировать его по размеру карточки."
+  },
+  {
+    "title": "Иллюстрация к музыкальному событию",
+    "originalTitle": "Jazz-concert AMVJ gebouw te Rotterdam, Bestanddeelnr 910-9747.jpg",
+    "author": "Herbert Behrens / Anefo",
+    "license": "CC0 1.0",
+    "sourceURL": "https://commons.wikimedia.org/wiki/File:Jazz-concert_AMVJ_gebouw_te_Rotterdam,_Bestanddeelnr_910-9747.jpg",
+    "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "assetNames": [
+      "events-asset-000"
+    ],
+    "changes": "Уменьшено и сжато в JPEG. Тематическая иллюстрация, не фотография указанного локального события, даты или площадки."
+  },
+  {
+    "title": "Иллюстрация к выставке",
+    "originalTitle": "Interior - Statens Museum for Kunst - DSC08266.JPG",
+    "author": "Daderot",
+    "license": "CC0 1.0",
+    "sourceURL": "https://commons.wikimedia.org/wiki/File:Interior_-_Statens_Museum_for_Kunst_-_DSC08266.JPG",
+    "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "assetNames": [
+      "events-asset-001"
+    ],
+    "changes": "Уменьшено и сжато в JPEG. Тематическая иллюстрация, не фотография указанного локального события, даты или площадки."
+  },
+  {
+    "title": "Иллюстрация к астрономическому вечеру",
+    "originalTitle": "Milky Way over the California desert",
+    "author": "NASA / Preston Dyches",
+    "license": "NASA — public domain (US)",
+    "sourceURL": "https://science.nasa.gov/image-detail/milkyway-desrt-tree-credit-preston-dyches-2/",
+    "licenseURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "assetNames": [
+      "events-asset-002"
+    ],
+    "changes": "Уменьшено и сжато в JPEG. Тематическая иллюстрация ночного неба, снятого в Калифорнии; не фотография локального события в Астане."
+  }
+]

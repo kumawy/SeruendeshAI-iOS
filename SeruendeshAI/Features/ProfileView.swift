@@ -3,6 +3,7 @@ import SwiftUI
 struct ProfileView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @State private var accountOpen = false
     @State private var confirmDeletion = false
     @State private var accountActionStarted = false
@@ -11,19 +12,21 @@ struct ProfileView: View {
     @State private var localName = ""
     @State private var nameEditorOpen = false
     @State private var editedName = ""
+    @State private var photoCreditsOpen = false
 
     var body: some View {
         @Bindable var app = app
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 32) {
+                VStack(alignment: .leading, spacing: 36) {
                     identity
 
                     journalButton
 
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 12) {
                         Text("Оформление")
-                            .font(.headline)
+                            .font(.subheadline)
+                            .foregroundStyle(SeruColor.muted)
                             .accessibilityAddTraits(.isHeader)
                         ProfileThemeSelector(selection: $app.theme)
                     }
@@ -31,10 +34,11 @@ struct ProfileView: View {
                     if app.usesBackend, app.account.user == nil {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Аккаунт")
-                                .font(.headline)
+                                .font(.subheadline)
+                                .foregroundStyle(SeruColor.muted)
                                 .accessibilityAddTraits(.isHeader)
                             Button { accountOpen = true } label: {
-                                ProfileActionLabel(title: "Войти или создать аккаунт", symbol: "person.badge.plus")
+                                ProfileActionLabel(title: "Войти или создать аккаунт", showsChevron: true)
                             }
                             .buttonStyle(.plain)
                             .disabled(app.account.isRestoring)
@@ -50,30 +54,26 @@ struct ProfileView: View {
                         accountError(error)
                     }
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Divider().overlay(SeruColor.line)
-                        DisclosureGroup {
-                            Text("Прогулки, фото и избранные места сохраняются между запусками. Журнал остаётся на этом устройстве и не синхронизируется с аккаунтом.")
-                                .font(.footnote)
-                                .foregroundStyle(SeruColor.muted)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .padding(.top, 4)
-                        } label: {
-                            Label("Хранится на устройстве", systemImage: "internaldrive")
-                                .font(.subheadline)
-                                .foregroundStyle(SeruColor.muted)
-                                .frame(minHeight: 44)
-                        }
+                    Text("Журнал, фотографии и избранные места хранятся на этом устройстве. Они сохраняются между запусками и не синхронизируются с аккаунтом.")
+                        .font(.footnote)
+                        .foregroundStyle(SeruColor.muted)
+                        .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("profile-local-storage")
+
+                    Button { photoCreditsOpen = true } label: {
+                        ProfileActionLabel(title: "Фотографии", showsChevron: true)
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("profile-photo-credits")
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 20)
+                .padding(.top, 28)
                 .padding(.bottom, 32)
                 .frame(maxWidth: 560)
                 .frame(maxWidth: .infinity)
             }
             .accessibilityIdentifier("profile-content")
+            .accessibilityValue(colorScheme == .dark ? "Тёмная тема" : "Светлая тема")
             .background(SeruColor.background)
             .foregroundStyle(SeruColor.ink)
             .navigationTitle("Профиль")
@@ -121,6 +121,7 @@ struct ProfileView: View {
             }
         }
         .tint(SeruColor.action)
+        .preferredColorScheme(app.theme == .system ? nil : app.theme == .dark ? .dark : .light)
         .interactiveDismissDisabled(app.account.isWorking)
         .sheet(isPresented: $accountOpen) {
             AccountView(requestReset: app.account.user != nil)
@@ -130,32 +131,36 @@ struct ProfileView: View {
         }) {
             JournalView(onOpen: { returnToWalk = true })
         }
+        .sheet(isPresented: $photoCreditsOpen) {
+            PhotoCreditsView()
+        }
     }
 
     private var displayName: String {
-        localName.isEmpty ? (app.account.user?.name ?? "Моя прогулка") : localName
+        localName.isEmpty ? (app.account.user?.name ?? "Гость") : localName
     }
 
     private var identity: some View {
-        HStack(alignment: .top, spacing: 18) {
+        HStack(alignment: .top, spacing: 16) {
             ZStack {
-                RoundedRectangle(cornerRadius: 20).fill(SeruColor.field)
+                Circle().fill(SeruColor.surface)
                 if !localName.isEmpty || app.account.user?.name.isEmpty == false {
                     Text(displayName.split(separator: " ").prefix(2).compactMap(\.first).map(String.init).joined().uppercased())
-                        .font(.system(size: 26, weight: .semibold))
-                        .foregroundStyle(SeruColor.action)
+                        .font(.title3.weight(.medium))
+                        .foregroundStyle(SeruColor.ink)
                 } else {
                     Image(systemName: "person")
-                        .font(.system(size: 28, weight: .light))
-                        .foregroundStyle(SeruColor.action)
+                        .font(.system(size: 22, weight: .regular))
+                        .foregroundStyle(SeruColor.muted)
                 }
             }
-            .frame(width: 68, height: 68)
+            .frame(width: 52, height: 52)
+            .overlay(Circle().strokeBorder(SeruColor.line, lineWidth: 1))
             .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(displayName)
-                    .font(.title2.weight(.semibold))
+                    .font(.title3.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("profile-user-name")
                 if let user = app.account.user {
@@ -169,8 +174,8 @@ struct ProfileView: View {
                     editedName = localName
                     nameEditorOpen = true
                 } label: {
-                    Label(localName.isEmpty ? "Как тебя называть" : "Изменить имя", systemImage: "pencil")
-                        .font(.subheadline.weight(.medium))
+                    Text(localName.isEmpty ? "Добавить имя" : "Изменить имя")
+                        .font(.subheadline)
                         .frame(minHeight: 44, alignment: .leading)
                 }
                 .buttonStyle(.plain)
@@ -185,57 +190,60 @@ struct ProfileView: View {
     }
 
     private var journalButton: some View {
-        Button { journalOpen = true } label: {
-            HStack(alignment: .top, spacing: 14) {
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.system(size: 23, weight: .regular))
-                    .padding(.top, 2)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Журнал прогулок").font(.headline)
-                    Text("Переписка, фото и твои планы")
-                        .font(.subheadline)
+        VStack(spacing: 0) {
+            Divider().overlay(SeruColor.line)
+            Button { journalOpen = true } label: {
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Журнал прогулок").font(.body.weight(.medium))
+                        Text("Переписка, фото и планы")
+                            .font(.footnote)
+                            .foregroundStyle(SeruColor.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(SeruColor.muted)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityHidden(true)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 15, weight: .medium))
-                    .padding(.top, 3)
-                    .accessibilityHidden(true)
+                .foregroundStyle(SeruColor.ink)
+                .padding(.vertical, 18)
+                .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+                .contentShape(.rect)
             }
-            .foregroundStyle(SeruColor.ink)
-            .padding(20)
-            .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
-            .background(SeruColor.field, in: .rect(cornerRadius: 20))
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("profile-journal")
+            Divider().overlay(SeruColor.line)
         }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("profile-journal")
     }
 
     private var accountActions: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("Аккаунт")
-                .font(.headline)
-                .padding(.bottom, 8)
+                .font(.subheadline)
+                .foregroundStyle(SeruColor.muted)
+                .padding(.bottom, 12)
                 .accessibilityAddTraits(.isHeader)
             Button { accountOpen = true } label: {
-                ProfileActionLabel(title: "Сменить пароль", symbol: "key")
+                ProfileActionLabel(title: "Сменить пароль", showsChevron: true)
             }
             .accessibilityIdentifier("profile-reset-password")
+            Divider().overlay(SeruColor.line)
             Button {
                 accountActionStarted = true
                 Task { @MainActor in _ = await app.account.signOut() }
             } label: {
                 HStack {
-                    ProfileActionLabel(title: "Выйти из аккаунта", symbol: "rectangle.portrait.and.arrow.right")
+                    ProfileActionLabel(title: "Выйти из аккаунта")
                     if app.account.isWorking { ProgressView() }
                 }
             }
             .disabled(app.account.isWorking || app.account.isRestoring)
             .accessibilityIdentifier("account-logout")
+            Divider().overlay(SeruColor.line)
             Button(role: .destructive) { confirmDeletion = true } label: {
-                ProfileActionLabel(title: "Удалить аккаунт", symbol: "trash", isDestructive: true)
+                ProfileActionLabel(title: "Удалить аккаунт", isDestructive: true)
             }
             .disabled(app.account.isWorking || app.account.isRestoring)
             .accessibilityIdentifier("account-delete")
@@ -269,21 +277,24 @@ struct ProfileView: View {
 
 private struct ProfileActionLabel: View {
     let title: String
-    let symbol: String
+    var showsChevron = false
     var isDestructive = false
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: symbol)
-                .font(.system(size: 18, weight: .regular))
-                .frame(width: 24)
-                .accessibilityHidden(true)
+        HStack(spacing: 16) {
             Text(title)
                 .font(.body)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(SeruColor.muted)
+                    .accessibilityHidden(true)
+            }
         }
         .foregroundStyle(isDestructive ? Color.red : SeruColor.ink)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
         .contentShape(.rect)
     }
@@ -296,62 +307,52 @@ private struct ProfileThemeSelector: View {
     var body: some View {
         Group {
             if typeSize.isAccessibilitySize {
-                VStack(spacing: 8) {
-                    ForEach(AppTheme.allCases) { theme in option(theme, horizontal: true) }
+                VStack(spacing: 0) {
+                    ForEach(AppTheme.allCases) { theme in
+                        accessibleOption(theme)
+                        if theme != AppTheme.allCases.last {
+                            Divider().overlay(SeruColor.line)
+                        }
+                    }
                 }
             } else {
-                HStack(spacing: 8) {
-                    ForEach(AppTheme.allCases) { theme in option(theme, horizontal: false) }
+                Picker("Тема", selection: $selection) {
+                    ForEach(AppTheme.allCases) { theme in
+                        Text(theme == .system ? "Авто" : theme.title)
+                            .tag(theme)
+                            .accessibilityIdentifier("profile-theme-\(theme.rawValue)")
+                    }
                 }
+                .pickerStyle(.segmented)
+                .controlSize(.large)
+                .frame(minHeight: 44)
+                .accessibilityIdentifier("profile-theme-picker")
             }
         }
         .sensoryFeedback(.selection, trigger: selection)
     }
 
-    private func option(_ theme: AppTheme, horizontal: Bool) -> some View {
+    private func accessibleOption(_ theme: AppTheme) -> some View {
         Button { selection = theme } label: {
-            Group {
-                if horizontal {
-                    HStack(spacing: 12) {
-                        Image(systemName: symbol(for: theme)).accessibilityHidden(true)
-                        Text(theme.title).fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 0)
-                        if selection == theme { Image(systemName: "checkmark").accessibilityHidden(true) }
-                    }
-                    .font(.body)
-                } else {
-                    VStack(spacing: 10) {
-                        Image(systemName: symbol(for: theme))
-                            .font(.system(size: 20, weight: .regular))
-                            .accessibilityHidden(true)
-                        Text(theme == .system ? "Авто" : theme.title)
-                            .font(.subheadline.weight(.medium))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+            HStack(spacing: 16) {
+                Text(theme.title).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                if selection == theme {
+                    Image(systemName: "checkmark")
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(SeruColor.action)
+                        .accessibilityHidden(true)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 16)
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .foregroundStyle(selection == theme ? SeruColor.onAction : SeruColor.ink)
-            .background(selection == theme ? SeruColor.action : SeruColor.surface, in: .rect(cornerRadius: 14))
-            .overlay {
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(selection == theme ? Color.clear : SeruColor.line, lineWidth: 1)
-            }
-            .contentShape(.rect(cornerRadius: 14))
+            .font(.body)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: 48)
+            .foregroundStyle(SeruColor.ink)
+            .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(theme.title)
         .accessibilityAddTraits(selection == theme ? .isSelected : [])
         .accessibilityIdentifier("profile-theme-\(theme.rawValue)")
-    }
-
-    private func symbol(for theme: AppTheme) -> String {
-        switch theme {
-        case .system: "circle.lefthalf.filled"
-        case .light: "sun.max"
-        case .dark: "moon"
-        }
     }
 }

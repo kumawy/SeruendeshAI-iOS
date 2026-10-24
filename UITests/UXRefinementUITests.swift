@@ -60,7 +60,15 @@ final class UXRefinementUITests: XCTestCase {
     }
 
     func testEventsProfileDatesAndProviderLinkWithoutSaveOrCalendar() throws {
-        let app = makeApp()
+        try verifyEventProvider(theme: "dark")
+    }
+
+    func testEventsProviderLinkLight() throws {
+        try verifyEventProvider(theme: "light")
+    }
+
+    private func verifyEventProvider(theme: String) throws {
+        let app = makeApp(theme: theme)
         app.launch()
         defer { app.terminate() }
         try tap(app.tabBars.buttons["События"])
@@ -72,6 +80,7 @@ final class UXRefinementUITests: XCTestCase {
                       || app.descendants(matching: .any)["events-date-picker"].exists)
         try tap(app.navigationBars.buttons["Закрыть"])
         XCTAssertTrue(app.buttons["Выбрать дату"].waitForExistence(timeout: 5))
+        capture("event-guide-feed-\(theme)", app)
         try tap(app.buttons["event-detail-jazz"])
         XCTAssertTrue(app.navigationBars["Событие"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["event-save-jazz"].exists)
@@ -105,11 +114,11 @@ final class UXRefinementUITests: XCTestCase {
         capture("plan-after-stop-removal", app)
     }
 
-    private func makeApp() -> XCUIApplication {
+    private func makeApp(theme: String = "dark") -> XCUIApplication {
         continueAfterFailure = false
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
-        app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", "dark",
+        app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", theme,
                                 "-seru.origin", "Байтерек", "-seru.saved.places", "(garden)",
                                 "-seru.journal.storeID", UUID().uuidString]
         return app

@@ -8,6 +8,7 @@ struct WalkView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var detent: PanelSize = .compact
+    @State private var planPanelSize: PanelSize?
     @State private var chatScrollState = ChatScrollState()
     @State private var settings: WalkSettingsSheet?
     @State private var utilitySheet: UtilitySheet?
@@ -28,18 +29,7 @@ struct WalkView: View {
     }
 
     var body: some View {
-        Group {
-            if app.screen == .plan {
-                VStack(spacing: 0) {
-                    panelBack.padding(.top, 4)
-                    scrollingContent(for: .plan)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(SeruColor.surface.ignoresSafeArea())
-            } else {
-                mapAndPanel
-            }
-        }
+        mapAndPanel
         .sheet(item: $settings) { kind in WalkSettingsView(kind: kind) }
         .sheet(item: $utilitySheet) { kind in
             switch kind {
@@ -48,13 +38,17 @@ struct WalkView: View {
             }
         }
         .toolbar(keyboardActive ? .hidden : .visible, for: .tabBar)
-        .onChange(of: app.screen, initial: true) { _, next in
+        .onChange(of: app.screen, initial: true) { previous, next in
+            if previous == .plan && next != .plan { planPanelSize = detent }
             switch next {
             case .home: detent = .compact; focusComposer = false
             case .chat:
                 if dragStartHeight == nil && detent == .compact {
                     detent = focusComposer ? .expanded : .medium
                 }
+            case .plan:
+                detent = planPanelSize ?? (typeSize.isAccessibilitySize ? .expanded : .medium)
+                dismissComposer()
             default: detent = .medium; dismissComposer()
             }
         }
@@ -163,7 +157,7 @@ struct WalkView: View {
 
     private func panelHeight(in total: CGFloat) -> CGFloat {
         if app.screen == .home { return height(for: .compact, in: total) }
-        if keyboardActive || (typeSize.isAccessibilitySize && app.screen != .chat) {
+        if keyboardActive || (typeSize.isAccessibilitySize && app.screen != .chat && app.screen != .plan) {
             return height(for: .expanded, in: total)
         }
         return height(for: detent, in: total)
@@ -267,14 +261,42 @@ struct WalkView: View {
     private var panelBack: some View {
         HStack {
             Button { app.goBack() } label: {
-                SeruMenuLabel(title: "Назад", symbol: "chevron.left").font(.subheadline.weight(.medium)).frame(minHeight: 44)
+                if typeSize.isAccessibilitySize {
+                    Image(systemName: "chevron.left").font(.system(size: 18, weight: .medium))
+                        .frame(width: 44, height: 44)
+                } else {
+                    SeruMenuLabel(title: "Назад", symbol: "chevron.left").font(.subheadline.weight(.medium)).frame(minHeight: 44)
+                }
             }
+            .accessibilityLabel("Назад")
             .accessibilityIdentifier("walk-back")
             Spacer()
             if app.screen == .results {
                 Button { settings = .filters } label: {
-                    SeruMenuLabel(title: "Условия", symbol: "slider.horizontal.3").font(.subheadline).frame(minHeight: 44)
+                    if typeSize.isAccessibilitySize {
+                        Image(systemName: "slider.horizontal.3").font(.system(size: 18))
+                            .frame(width: 44, height: 44)
+                    } else {
+                        SeruMenuLabel(title: "Условия", symbol: "slider.horizontal.3").font(.subheadline).frame(minHeight: 44)
+                    }
                 }
+                .accessibilityLabel("Условия прогулки")
+            }
+            if app.screen == .plan {
+                Button {
+                    dismissComposer()
+                    detent = detent == .expanded ? .medium : .expanded
+                } label: {
+                    if typeSize.isAccessibilitySize {
+                        Image(systemName: detent == .expanded ? "map" : "list.bullet")
+                            .font(.system(size: 18, weight: .medium)).frame(width: 44, height: 44)
+                    } else {
+                        Label(detent == .expanded ? "Карта" : "Остановки", systemImage: detent == .expanded ? "map" : "list.bullet")
+                            .font(.subheadline.weight(.medium)).frame(minHeight: 44)
+                    }
+                }
+                .accessibilityLabel(detent == .expanded ? "Показать карту прогулки" : "Развернуть остановки")
+                .accessibilityIdentifier("plan-toggle-view")
             }
             Menu {
                 Button { utilitySheet = .journal } label: { SeruMenuLabel(title: "Журнал прогулок", symbol: "clock.arrow.circlepath") }
@@ -288,7 +310,7 @@ struct WalkView: View {
             }
             .accessibilityLabel("Журнал и профиль").accessibilityIdentifier("walk-options")
         }
-        .foregroundStyle(SeruColor.action).padding(.horizontal, 16)
+        .foregroundStyle(SeruColor.ink).padding(.horizontal, 20)
     }
 
     @ViewBuilder private var panelContent: some View {
@@ -327,6 +349,7 @@ private struct PanelScrollView<Content: View>: View {
 struct ResultsPanel: View {
     @Environment(AppModel.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
     @AccessibilityFocusState private var errorFocused: Bool
     let onSettings: () -> Void
     var mascotActive: Bool = true
@@ -380,8 +403,8 @@ struct ResultsPanel: View {
                         HStack(spacing: 12) {
                             PlaceThumbnail(place: place)
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(place.name).font(.system(.subheadline, design: .default, weight: .bold)).foregroundStyle(SeruColor.ink)
-                                    .lineLimit(2)
+                                Text(place.name).font(.body.weight(.semibold)).foregroundStyle(SeruColor.ink)
+                                    .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
                                 HStack(spacing: 5) {
                                     Label("\(place.travelMinutes) мин", systemImage: "figure.walk")
                                     Text("· \(place.distance)")
@@ -391,13 +414,13 @@ struct ResultsPanel: View {
                     }.buttonStyle(.plain).accessibilityIdentifier("place-\(place.id)")
                     SavePlaceButton(place: place)
                 }
-                .padding(10).background(SeruColor.surface, in: RoundedRectangle(cornerRadius: 18))
+                .padding(.vertical, 12)
+                Divider().overlay(SeruColor.line)
             }
             Button { app.showChat() } label: {
                 Label("Уточнить", systemImage: "bubble.left")
                     .frame(maxWidth: .infinity, minHeight: 48)
                     .foregroundStyle(SeruColor.action)
-                    .background(SeruColor.field, in: RoundedRectangle(cornerRadius: 16))
             }.buttonStyle(.plain)
         }
         .padding(.horizontal, 16)

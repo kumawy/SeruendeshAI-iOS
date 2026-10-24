@@ -1,17 +1,17 @@
 import SwiftUI
 
 enum SeruColor {
-    static let background = adaptive("F5F5F5", "101310")
-    static let surface = adaptive("FFFFFF", "1A201C")
-    static let field = adaptive("EAF7EC", "222D26")
-    static let assistantBubble = adaptive("DFEDE2", "30463A")
-    static let forest = adaptive("174B3E", "335540")
-    static let action = adaptive("174B3E", "82A58C")
-    static let onAction = adaptive("FFFFFF", "101010")
-    static let lime = adaptive("CFF13A", "304336")
-    static let ink = adaptive("131E17", "F3F5F7")
-    static let muted = adaptive("404945", "A5AFA8")
-    static let line = adaptive("D9E6DB", "303D34")
+    static let background = adaptive("F7F5F0", "161717")
+    static let surface = adaptive("FFFFFF", "1D1E1E")
+    static let field = adaptive("EDEAE5", "282929")
+    static let assistantBubble = adaptive("F7F5F0", "1D1E1E")
+    static let forest = adaptive("23583F", "23583F")
+    static let action = adaptive("23583F", "A5C4B3")
+    static let onAction = adaptive("FFFFFF", "161717")
+    static let lime = adaptive("E5EDE5", "303B35")
+    static let ink = adaptive("202322", "F2F1ED")
+    static let muted = adaptive("5E625F", "B0B3AF")
+    static let line = adaptive("DDDAD3", "393B3A")
 
     private static func adaptive(_ light: String, _ dark: String) -> Color {
         Color(uiColor: UIColor { traits in
@@ -60,7 +60,7 @@ struct PrimaryAction: View {
             .frame(maxWidth: .infinity, minHeight: 50)
             .padding(.horizontal, 12)
             .foregroundStyle(SeruColor.onAction)
-            .background(SeruColor.action, in: RoundedRectangle(cornerRadius: 16))
+            .background(SeruColor.action, in: RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(SeruPressStyle())
     }
@@ -161,14 +161,9 @@ struct ProfileButton: View {
         Button(action: action) {
             Image(systemName: "person")
                 .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(SeruColor.action)
+                .foregroundStyle(SeruColor.ink)
                 .frame(width: 44, height: 44)
-                .background(SeruColor.surface, in: .rect(cornerRadius: 14))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(SeruColor.line, lineWidth: 1)
-                }
-                .contentShape(.rect(cornerRadius: 14))
+                .contentShape(.rect)
         }
         .buttonStyle(SeruPressStyle())
         .accessibilityLabel("Профиль и настройки")

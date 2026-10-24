@@ -92,7 +92,7 @@ struct LiveMapView: View {
                         }
                     }
 
-                    if !isEmbedded {
+                    if !isEmbedded && visibleHeight > 180 {
                         controls(size: geometry.size, target: presentation.fitTarget)
                     }
                 }

@@ -29,7 +29,6 @@ struct ChatScreen: View {
     var mascotActive: Bool = true
     @Environment(AppModel.self) private var app
     @Environment(ChatAttachmentLoader.self) private var attachmentLoader
-    @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var headingHeight: CGFloat = 32
@@ -106,15 +105,15 @@ struct ChatScreen: View {
             chatHeader
             Button { onSettings?(.filters) } label: {
                 HStack(alignment: .center, spacing: 8) {
-                    Image(systemName: "mappin.and.ellipse").font(.caption)
-                    Text(conditions).font(.caption).multilineTextAlignment(.leading)
+                    Text(conditions).font(.footnote).multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                     Image(systemName: "slider.horizontal.3").font(.system(size: 14))
                 }
-                .padding(.horizontal, 12)
                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                .background(SeruColor.field, in: .rect(cornerRadius: 12))
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(SeruColor.line).frame(height: 1)
+                }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -259,7 +258,7 @@ struct ChatScreen: View {
             }
             chatOptions
         }
-        .buttonStyle(.plain).foregroundStyle(SeruColor.action).padding(.horizontal, 16)
+        .buttonStyle(.plain).foregroundStyle(SeruColor.ink).padding(.horizontal, 16)
     }
 
     private var chatOptions: some View {
@@ -292,24 +291,25 @@ struct ChatScreen: View {
                 if let attachment = message.attachmentData {
                     ChatPhotoAttachment(data: attachment)
                         .frame(width: 220, height: 150)
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .clipShape(.rect(cornerRadius: 12))
                 }
-                Text(message.text).font(.subheadline).lineSpacing(4).textSelection(.enabled)
+                Text(message.text).font(.body).lineSpacing(4).textSelection(.enabled)
                     .accessibilityIdentifier(isUser ? "user-message" : "assistant-message")
             }
-            .foregroundStyle(isUser ? .white : SeruColor.ink)
-            .padding(.horizontal, 16).padding(.vertical, 12)
-            .background(
-                isUser ? (scheme == .dark ? SeruColor.field : SeruColor.forest) : SeruColor.assistantBubble,
-                in: UnevenRoundedRectangle(topLeadingRadius: 24, bottomLeadingRadius: isUser ? 24 : 7,
-                                           bottomTrailingRadius: isUser ? 7 : 24, topTrailingRadius: 24)
-            )
+            .foregroundStyle(SeruColor.ink)
+            .padding(.horizontal, isUser ? 16 : 0)
+            .padding(.vertical, isUser ? 12 : 4)
+            .frame(maxWidth: isUser ? nil : .infinity, alignment: .leading)
+            .background {
+                if isUser {
+                    RoundedRectangle(cornerRadius: 16).fill(SeruColor.field)
+                }
+            }
             .contextMenu {
                 Button { UIPasteboard.general.string = message.text } label: {
                     SeruMenuLabel(title: "Скопировать текст", symbol: "doc.on.doc")
                 }
             }
-            if !isUser { Spacer(minLength: 25) }
         }
     }
 
@@ -317,26 +317,39 @@ struct ChatScreen: View {
         let places = message.snapshot?.places ?? message.placeIDs.map { app.place(id: $0) }
         let plan = message.snapshot?.plan
         if let first = places.first {
-            VStack(alignment: .leading, spacing: 0) {
-                PlaceArtwork(place: first).frame(height: 130).clipped().accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 12) {
+                PlaceArtwork(place: first)
+                    .frame(height: 180)
+                    .clipShape(.rect(cornerRadius: 12))
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 10) {
                     Text(plan?.name ?? (places.count == 1 ? first.name : "Места для прогулки"))
-                        .font(.headline).fixedSize(horizontal: false, vertical: true)
+                        .font(.body.weight(.medium)).fixedSize(horizontal: false, vertical: true)
                     if let plan {
-                        Text("≈ \(plan.duration) мин · \(plan.distance)").font(.caption).foregroundStyle(SeruColor.muted)
+                        Text("≈ \(plan.duration) мин · \(plan.distance)").font(.subheadline).foregroundStyle(SeruColor.muted)
                     } else {
-                        Text(SeruText.placeCount(places.count)).font(.caption).foregroundStyle(SeruColor.muted)
+                        Text(SeruText.placeCount(places.count)).font(.subheadline).foregroundStyle(SeruColor.muted)
                     }
                     if let context = message.snapshot?.context {
                         Text("От \(context.origin) · до \(context.duration) мин")
                             .font(.caption).foregroundStyle(SeruColor.muted)
                     }
-                    PrimaryAction(title: "На карту", symbol: "map") { app.openRecommendation(message) }
-                        .accessibilityIdentifier("chat-show-places")
-                }.padding(14)
+                    Button { app.openRecommendation(message) } label: {
+                        HStack(spacing: 8) {
+                            Text("На карту")
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 13, weight: .medium))
+                                .accessibilityHidden(true)
+                        }
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(SeruColor.action)
+                        .frame(minHeight: 44, alignment: .leading)
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("chat-show-places")
+                }
             }
-            .background(SeruColor.surface).clipShape(RoundedRectangle(cornerRadius: 20))
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(SeruColor.line.opacity(0.5), lineWidth: 1))
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("chat-recommendation-\(message.id)")
         }
@@ -346,26 +359,24 @@ struct ChatScreen: View {
         HStack(spacing: 12) {
             WalkStateMascot(scene: .thinking, isActive: isActive).frame(width: 72, height: 72)
             VStack(alignment: .leading, spacing: 8) {
-                Text("Подбираю места…").font(.subheadline)
+                Text("Подбираю места…").font(.body)
                 Button("Отмена") { app.cancelResponse() }.font(.subheadline).frame(minHeight: 44)
             }
             Spacer(minLength: 0)
         }
-        .foregroundStyle(SeruColor.ink).padding(14)
-        .background(SeruColor.assistantBubble, in: RoundedRectangle(cornerRadius: 20))
+        .foregroundStyle(SeruColor.ink).padding(.vertical, 8)
     }
 
     private func responseFailure(_ error: String, isActive: Bool) -> some View {
         HStack(alignment: .top, spacing: 12) {
             WalkStateMascot(scene: .connectionError, isActive: isActive).frame(width: 80, height: 80)
             VStack(alignment: .leading, spacing: 10) {
-                Text(error).font(.subheadline).accessibilityIdentifier("response-error").accessibilityFocused($errorFocused)
+                Text(error).font(.body).accessibilityIdentifier("response-error").accessibilityFocused($errorFocused)
                 Button("Повторить") { app.retryResponse() }
                     .font(.subheadline.weight(.semibold)).tint(SeruColor.action).frame(minHeight: 44)
             }
         }
-        .padding(14).foregroundStyle(SeruColor.ink)
-        .background(SeruColor.field, in: RoundedRectangle(cornerRadius: 18))
+        .padding(.vertical, 8).foregroundStyle(SeruColor.ink)
     }
 }
 

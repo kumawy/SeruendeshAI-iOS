@@ -33,7 +33,7 @@ struct SavedView: View {
                                 emptyState
                                     .frame(minHeight: hasAccountStatus ? nil : viewport.size.height)
                             } else {
-                                LazyVStack(spacing: 14) {
+                                LazyVStack(spacing: 20) {
                                     ForEach(app.savedPlaces) { place in
                                         SavedPlaceCard(
                                             place: place,
@@ -73,8 +73,7 @@ struct SavedView: View {
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
             Text("Избранное")
-                .font(.title.weight(.bold))
-                .tracking(-0.7)
+                .font(.largeTitle.weight(.semibold))
                 .foregroundStyle(SeruColor.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -248,8 +247,8 @@ private struct SavedPlaceCard: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 14) {
                 Button(action: showDetail) {
                     thumbnail
                         .contentShape(.rect)
@@ -288,8 +287,6 @@ private struct SavedPlaceCard: View {
                     }
                 }
             }
-            .padding(14)
-
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 8) {
                     walkingDistance
@@ -301,20 +298,20 @@ private struct SavedPlaceCard: View {
                     routeButton
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 5)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(SeruColor.field.opacity(0.65))
+
+            Rectangle()
+                .fill(SeruColor.line)
+                .frame(height: 1)
+                .padding(.top, 4)
+                .accessibilityHidden(true)
         }
-        .background(SeruColor.surface)
-        .clipShape(.rect(cornerRadius: 12))
-        .contentShape(.rect(cornerRadius: 12))
-        .shadow(color: Color.black.opacity(0.06), radius: 10, y: 4)
     }
 
     private var thumbnail: some View {
         PlaceArtwork(place: place, bundledAsset: displayImageAsset)
-            .frame(width: 80, height: 80)
+            .frame(width: dynamicTypeSize.isAccessibilitySize ? 80 : 88,
+                   height: dynamicTypeSize.isAccessibilitySize ? 80 : 88)
             .clipped()
             .clipShape(.rect(cornerRadius: 8))
             .contentShape(.rect)
@@ -357,7 +354,7 @@ private struct SavedPlaceCard: View {
         ].compactMap { $0 }
         if !parts.isEmpty {
             Label(parts.joined(separator: " · "), systemImage: "figure.walk")
-                .font(.caption2.weight(.bold))
+                .font(.footnote)
                 .foregroundStyle(SeruColor.muted)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -365,12 +362,10 @@ private struct SavedPlaceCard: View {
 
     private var routeButton: some View {
         Button(action: showRoute) {
-            Label("Маршрут", systemImage: "arrow.triangle.turn.up.right.diamond")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(SeruColor.onAction)
-                .padding(.horizontal, 14)
-                .frame(minHeight: 44)
-                .background(SeruColor.action, in: .capsule)
+            Label("Маршрут", systemImage: "arrow.turn.up.right")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(SeruColor.action)
+                .frame(minWidth: 44, minHeight: 44)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Маршрут к месту \(place.name)")

@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-24T09:51:15.987988Z",
+  "title": "Design System: Seru city guide",
+  "extensions": {
+    "colorMeta": {
+      "background-light": {
+        "role": "neutral",
+        "displayName": "Warm paper / charcoal (light)"
+      },
+      "background-dark": {
+        "role": "neutral",
+        "displayName": "Warm paper / charcoal (dark)"
+      },
+      "surface-light": {
+        "role": "neutral",
+        "displayName": "White / raised charcoal (light)"
+      },
+      "surface-dark": {
+        "role": "neutral",
+        "displayName": "White / raised charcoal (dark)"
+      },
+      "field-light": {
+        "role": "neutral",
+        "displayName": "Warm field / dark field (light)"
+      },
+      "field-dark": {
+        "role": "neutral",
+        "displayName": "Warm field / dark field (dark)"
+      },
+      "assistant-bubble-light": {
+        "role": "neutral",
+        "displayName": "Assistant surface (light)"
+      },
+      "assistant-bubble-dark": {
+        "role": "neutral",
+        "displayName": "Assistant surface (dark)"
+      },
+      "forest": {
+        "role": "primary",
+        "displayName": "Fixed forest"
+      },
+      "action-light": {
+        "role": "primary",
+        "displayName": "Action forest / sage (light)"
+      },
+      "action-dark": {
+        "role": "primary",
+        "displayName": "Action forest / sage (dark)"
+      },
+      "on-action-light": {
+        "role": "neutral",
+        "displayName": "Action foreground (light)"
+      },
+      "on-action-dark": {
+        "role": "neutral",
+        "displayName": "Action foreground (dark)"
+      },
+      "lime-light": {
+        "role": "primary",
+        "displayName": "Soft green highlight (light)"
+      },
+      "lime-dark": {
+        "role": "primary",
+        "displayName": "Soft green highlight (dark)"
+      },
+      "ink-light": {
+        "role": "neutral",
+        "displayName": "Ink (light)"
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Ink (dark)"
+      },
+      "muted-light": {
+        "role": "neutral",
+        "displayName": "Muted ink (light)"
+      },
+      "muted-dark": {
+        "role": "neutral",
+        "displayName": "Muted ink (dark)"
+      },
+      "line-light": {
+        "role": "neutral",
+        "displayName": "Fine line (light)"
+      },
+      "line-dark": {
+        "role": "neutral",
+        "displayName": "Fine line (dark)"
+      },
+      "provider-sxodim": {
+        "role": "provider",
+        "displayName": "Sxodim red"
+      },
+      "provider-ticketon": {
+        "role": "provider",
+        "displayName": "Ticketon green"
+      },
+      "on-provider-ticketon": {
+        "role": "neutral",
+        "displayName": "Ticketon foreground"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Page title",
+        "purpose": "SwiftUI .largeTitle, Dynamic Type; Events and Saved."
+      },
+      "headline": {
+        "displayName": "Detail title",
+        "purpose": "SwiftUI .title, Dynamic Type; local bold variant for place detail."
+      },
+      "title": {
+        "displayName": "Section title",
+        "purpose": "SwiftUI .title2, Dynamic Type; shared SectionHeading and route headings."
+      },
+      "title-compact": {
+        "displayName": "Compact title",
+        "purpose": "SwiftUI .title3, Dynamic Type; feed, identity and empty states."
+      },
+      "body": {
+        "displayName": "Reading text",
+        "purpose": "SwiftUI .body, Dynamic Type; chat prose and account rows."
+      },
+      "body-medium": {
+        "displayName": "Content title",
+        "purpose": "SwiftUI .body, medium; recommendation and place titles."
+      },
+      "action": {
+        "displayName": "Primary action",
+        "purpose": "SwiftUI .body, semibold; PrimaryAction."
+      },
+      "subheadline": {
+        "displayName": "Supporting text",
+        "purpose": "SwiftUI .subheadline; context, venue and composer text."
+      },
+      "subheadline-action": {
+        "displayName": "Compact action",
+        "purpose": "SwiftUI .subheadline, semibold; provider links and selected filters."
+      },
+      "footnote": {
+        "displayName": "Context",
+        "purpose": "SwiftUI .footnote; local-storage explanation and distance/context."
+      },
+      "label": {
+        "displayName": "Metadata label",
+        "purpose": "SwiftUI .caption, medium; TagPill."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "SwiftUI .caption; credits and compact supporting information."
+      }
+    },
+    "shadows": [
+      {
+        "name": "mascot-feedback",
+        "value": ".shadow(color: .black.opacity(0.08), radius: 16, y: 6)",
+        "purpose": "Transient MascotFeedbackBanner only; native points."
+      },
+      {
+        "name": "map-origin",
+        "value": ".shadow(color: .black.opacity(0.16), radius: 3, x: 0, y: 2)",
+        "purpose": "Origin map annotation readability over map artwork."
+      },
+      {
+        "name": "map-place",
+        "value": ".shadow(color: .black.opacity(0.18), radius: 3, x: 0, y: 2)",
+        "purpose": "Compact place/stop annotation readability over map artwork."
+      }
+    ],
+    "motion": [
+      {
+        "name": "panel",
+        "value": ".spring(response: 0.3, dampingFraction: 0.9)",
+        "purpose": "SeruMotion.panel; nil under Reduce Motion."
+      },
+      {
+        "name": "scroll",
+        "value": ".easeOut(duration: 0.18)",
+        "purpose": "SeruMotion.scroll; nil under Reduce Motion."
+      },
+      {
+        "name": "feedback",
+        "value": ".easeOut(duration: reduceMotion ? 0.12 : 0.18)",
+        "purpose": "SeruMotion.feedback; small state crossfade."
+      },
+      {
+        "name": "press",
+        "value": "opacity 0.86; scale 0.985; .easeOut(duration: 0.14)",
+        "purpose": "SeruPressStyle; Reduce Motion preserves opacity and removes scale/animation."
+      },
+      {
+        "name": "event-filter",
+        "value": ".easeOut(duration: 0.16)",
+        "purpose": "EventFilterPill selection; nil under Reduce Motion."
+      },
+      {
+        "name": "splash",
+        "value": "greeting 0.75s + reveal 0.25s",
+        "purpose": "Existing standard 1s splash; Reduce Motion uses 0.02s hold + 0.12s fade."
+      }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary action",
+      "kind": "button",
+      "refersTo": "button-primary-light",
+      "description": "Native PrimaryAction in SeruTheme.swift. Adaptive light/dark roles, minimum height 50 pt, 12 pt corners; SeruPressStyle respects Reduce Motion."
+    },
+    {
+      "name": "Plain action and profile control",
+      "kind": "button",
+      "description": "Native plain Button and ProfileButton. Semantic text or SF Symbol, minimum 44 pt target, descriptive accessibility label."
+    },
+    {
+      "name": "Conversation composer",
+      "kind": "input",
+      "refersTo": "input-composer-light",
+      "description": "Native ChatComposer in Features/ChatComposer.swift. Multiline TextField, PhotosPicker, filters and stateful 44 pt send control; native focus and keyboard."
+    },
+    {
+      "name": "Tab and sheet navigation",
+      "kind": "nav",
+      "description": "Native TabView with Walk, Events and Saved; NavigationStack and sheets retain platform geometry and adaptive action tint."
+    },
+    {
+      "name": "Event filter",
+      "kind": "chip",
+      "refersTo": "filter-light",
+      "description": "Native EventFilterPill in Features/EventsView.swift. Minimum height 44 pt; selected ink/background inversion, semibold type and selected accessibility trait."
+    },
+    {
+      "name": "Metadata pill",
+      "kind": "chip",
+      "description": "Native TagPill in SeruTheme.swift. Noninteractive medium caption text, 11/7 pt padding and capsule shape; optional soft-green highlight."
+    },
+    {
+      "name": "Shared grouped surface",
+      "kind": "card",
+      "refersTo": "card-light",
+      "description": "Native seruCard() in SeruTheme.swift. Default radius 20 pt, adaptive surface; supplies no padding, border or shadow."
+    },
+    {
+      "name": "Event provider action",
+      "kind": "button",
+      "refersTo": "provider-sxodim",
+      "description": "Native EventProviderAction in Features/EventsView.swift. Compact external Link, brand-specific foreground/background, 8 pt corners and minimum 44 pt height. Ticketon uses provider-ticketon."
+    },
+    {
+      "name": "Walk map and panel",
+      "kind": "custom",
+      "description": "Native WalkView with a persistent MapKit map and one compact/medium/expanded panel. Surface panel has 24 pt top corners; camera and ordered stop state stay connected."
+    },
+    {
+      "name": "Profile theme selection",
+      "kind": "custom",
+      "description": "Native large segmented Picker in ProfileThemeSelector; accessible text sizes replace the segments with full-width checkmarked rows."
+    }
+  ],
+  "narrative": {
+    "northStar": "A quiet city guide",
+    "overview": "Real places, useful maps and readable information lead Seru. Warm white and charcoal grounds keep the interface calm; green directs an action or marks a meaningful state. The approved mascot carries the conversational personality through greetings, loading, feedback and empty states.\n\nThis is a native iOS 26 SwiftUI system. Photographs provide the strongest visual expression. Ordinary information uses spacing, typography and fine separators; containers serve fields, messages, overlays and genuine groups. Motion explains a change of state and remains optional under Reduce Motion.",
+    "keyCharacteristics": [
+      "Neutral grounds with a restrained forest action accent.",
+      "Real place and event photography with visible source context.",
+      "Native typography, navigation, theme selection and accessible controls.",
+      "One persistent walk workspace for the map, conversation and stops.",
+      "A preserved mascot with short, state-driven motion."
+    ],
+    "rules": [
+      {
+        "name": "The Action Accent Rule",
+        "body": "Use the adaptive action green for app actions, active navigation and route state. Ordinary text and page surfaces remain neutral; provider branding and semantic red retain their own roles.",
+        "section": "colors"
+      },
+      {
+        "name": "The Native Type Rule",
+        "body": "Use SwiftUI text styles for reading and actions so Dynamic Type can change their metrics. Do not freeze semantic text styles into fixed point sizes.",
+        "section": "typography"
+      },
+      {
+        "name": "The Quiet Surface Rule",
+        "body": "Separate ordinary rows through spacing and fine dividers. Add a surface only when it communicates a field, message, overlay or distinct group.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use adaptive SeruColor roles and the existing SwiftUI text styles.",
+      "Do lead place and event content with relevant photographs and preserve photo credits and provider identity.",
+      "Do use plain rows and fine dividers for account, saved-place and stop information.",
+      "Do keep controls at least 44 pt, expose VoiceOver actions and let accessibility text reflow.",
+      "Do keep the map and ordered stops in one walk workspace and preserve approximate-route labels.",
+      "Do preserve mascot assets, local-data behavior and the one-second standard splash sequence."
+    ],
+    "donts": [
+      "Don't spread green across ordinary page sections or recolor provider links as app actions.",
+      "Don't wrap every row in a card or add decorative gradients and shadows.",
+      "Don't replace native theme selection, sheets or tab navigation with custom ornamental controls.",
+      "Don't repeat entrance animations on rows or require spatial motion to understand a state.",
+      "Don't truncate essential information at accessibility text sizes or communicate selection through color alone.",
+      "Don't invent place imagery, event destinations, GPS positions or precise network routes."
+    ]
+  }
+}

@@ -802,7 +802,7 @@ final class SeruendeshAIUITests: XCTestCase {
         try requireCollapsedPanel(app)
         try tapReachable(app.buttons["Профиль и настройки"], app: app)
         try require(app.navigationBars["Профиль"])
-        try require(app.buttons["profile-theme-light"])
+        try require(app.segmentedControls["profile-theme-picker"])
         capture("profile", app: app)
         try tapReachable(app.navigationBars.buttons["Готово"], app: app)
         try requireCollapsedPanel(app)

@@ -42,10 +42,10 @@ struct EventsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 20) {
                     HStack {
                         Text("События")
-                            .font(.largeTitle.weight(.bold))
+                            .font(.largeTitle.weight(.semibold))
                             .foregroundStyle(SeruColor.ink)
                             .accessibilityAddTraits(.isHeader)
                         Spacer(minLength: 8)
@@ -80,11 +80,17 @@ struct EventsView: View {
                         emptyState
                             .padding(.horizontal, 16)
                     } else {
-                        LazyVStack(spacing: 20) {
+                        LazyVStack(spacing: 24) {
                             ForEach(filteredEvents) { event in
-                                EventFeedCard(event: event, dateText: EventPresentation.cardDate(
-                                    event, day: day, selectedDate: selectedDate, now: now
-                                ))
+                                VStack(spacing: 24) {
+                                    EventFeedCard(event: event, dateText: EventPresentation.cardDate(
+                                        event, day: day, selectedDate: selectedDate, now: now
+                                    ))
+                                    Rectangle()
+                                        .fill(SeruColor.line)
+                                        .frame(height: 1)
+                                        .accessibilityHidden(true)
+                                }
                             }
                         }
                         .padding(.horizontal, 16)
@@ -138,7 +144,8 @@ struct EventsView: View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(SeruColor.muted)
-            TextField("Поиск событий", text: $query)
+            TextField("Поиск событий", text: $query,
+                      prompt: Text("Поиск событий").foregroundStyle(SeruColor.muted))
                 .font(.subheadline)
                 .submitLabel(.search)
                 .autocorrectionDisabled()
@@ -166,7 +173,6 @@ struct EventsView: View {
                     .font(.body.weight(.medium))
                     .foregroundStyle(SeruColor.ink)
                     .frame(width: 44, height: 44)
-                    .background(SeruColor.field, in: .circle)
                     .overlay(alignment: .topTrailing) {
                         if freeOnly || category != "Все категории" {
                             Circle()
@@ -178,12 +184,11 @@ struct EventsView: View {
             .accessibilityLabel("Фильтры событий")
             .accessibilityIdentifier("events-filters")
         }
-        .padding(.leading, 16)
+        .padding(.leading, 14)
         .padding(.trailing, 5)
         .padding(.vertical, 4)
         .frame(minHeight: 52)
-        .background(SeruColor.surface, in: .capsule)
-        .shadow(color: Color.black.opacity(0.06), radius: 12, y: 6)
+        .background(SeruColor.field, in: .rect(cornerRadius: 12))
     }
 
     private var dayFilters: some View {
@@ -237,7 +242,6 @@ struct EventsView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity)
-        .seruCard(radius: 16)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("events-empty-state")
     }
@@ -285,7 +289,6 @@ struct EventsView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, minHeight: 220)
-        .seruCard(radius: 16)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("events-loading")
     }
@@ -317,7 +320,6 @@ struct EventsView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .seruCard(radius: 16)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier(showsMascot ? "events-load-failure" : "events-refresh-error")
     }
@@ -364,11 +366,11 @@ private struct EventFilterPill: View {
                 Text(title)
                     .fixedSize(horizontal: !wrapsTitle, vertical: true)
             }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(isSelected ? SeruColor.onAction : SeruColor.ink)
-            .padding(.horizontal, 16)
+            .font(.subheadline.weight(isSelected ? .semibold : .regular))
+            .foregroundStyle(isSelected ? SeruColor.background : SeruColor.ink)
+            .padding(.horizontal, 14)
             .frame(minHeight: 44)
-            .background(isSelected ? SeruColor.action : SeruColor.surface, in: .capsule)
+            .background(isSelected ? SeruColor.ink : SeruColor.field, in: .rect(cornerRadius: 8))
         }
         .buttonStyle(.plain)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: isSelected)
@@ -377,37 +379,42 @@ private struct EventFilterPill: View {
 }
 
 struct EventFeedCard: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let event: CityEvent
     let dateText: String
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 14) {
             NavigationLink(value: event) {
-                VStack(spacing: 0) {
-                    EventPhoto(event: event, height: 192)
+                VStack(alignment: .leading, spacing: 16) {
+                    EventPhoto(event: event, height: 224)
                         .overlay(alignment: .top) { EventPhotoBadges(event: event).padding(12) }
-                    VStack(alignment: .leading, spacing: 8) {
-                        dateLabel
-                        Text(event.title)
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(SeruColor.ink)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .multilineTextAlignment(.leading)
-                        metadataLayout {
-                            Label(event.venue, systemImage: "mappin.and.ellipse")
+                        .clipShape(.rect(cornerRadius: 12))
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 9) {
+                            Text(event.title)
+                                .font(.title3.weight(.semibold))
+                                .foregroundStyle(SeruColor.ink)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .multilineTextAlignment(.leading)
+                            Text(dateText)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(SeruColor.ink)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(event.venue)
                                 .font(.subheadline)
                                 .foregroundStyle(SeruColor.muted)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .multilineTextAlignment(.leading)
-                            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 2) }
-                            Label("Подробнее", systemImage: "arrow.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(SeruColor.action)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(SeruColor.muted)
+                            .padding(.top, 5)
+                            .accessibilityHidden(true)
                     }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
@@ -415,25 +422,10 @@ struct EventFeedCard: View {
             .accessibilityIdentifier("event-detail-\(event.id)")
             if let destination = EventProviderDestination.forEvent(event) {
                 EventProviderAction(destination: destination)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
                     .accessibilityIdentifier("event-provider-link-\(event.id)")
             }
         }
-        .background(SeruColor.surface)
-        .clipShape(.rect(cornerRadius: 16))
-    }
-
-    private var dateLabel: some View {
-        Label(dateText, systemImage: event.isLive || event.isTomorrow ? "calendar" : "clock")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(SeruColor.action)
-    }
-
-    private var metadataLayout: AnyLayout {
-        dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
-            : AnyLayout(HStackLayout(alignment: .center, spacing: 8))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -513,21 +505,20 @@ private struct EventProviderAction: View {
 
     var body: some View {
         Link(destination: destination.url) {
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 Text(destination.actionTitle)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
                 Image(systemName: "arrow.up.right")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.caption.weight(.semibold))
                     .accessibilityHidden(true)
             }
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(destination.provider.foreground)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, minHeight: 48)
-            .background(destination.provider.background, in: .rect(cornerRadius: 12))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .frame(minHeight: 44)
+            .background(destination.provider.background, in: .rect(cornerRadius: 8))
         }
         .buttonStyle(SeruPressStyle())
         .accessibilityHint(destination.isListing
@@ -544,19 +535,37 @@ struct EventDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 24) {
                 EventPhoto(event: event, height: 250)
                     .overlay(alignment: .top) { EventPhotoBadges(event: event).padding(12) }
-                    .clipShape(.rect(cornerRadius: 16))
+                    .clipShape(.rect(cornerRadius: 12))
                 Text(event.title)
-                    .font(.title2.weight(.semibold))
+                    .font(.title.weight(.semibold))
                     .foregroundStyle(SeruColor.ink)
                     .accessibilityAddTraits(.isHeader)
-                VStack(alignment: .leading, spacing: 14) {
+                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 10) {
                     Label(EventPresentation.cardDate(event, day: .all, selectedDate: now, now: now), systemImage: "calendar")
-                    Label(event.venue, systemImage: "mappin.and.ellipse")
+                        .fontWeight(.medium)
+                    if let venue = EventPresentation.venueURL(event) {
+                        Link(destination: venue) {
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Label(event.venue, systemImage: "mappin.and.ellipse")
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption.weight(.semibold))
+                                    .accessibilityHidden(true)
+                            }
+                            .foregroundStyle(SeruColor.ink)
+                            .frame(minHeight: 44, alignment: .leading)
+                        }
+                        .accessibilityHint("Найти площадку и выбрать маршрут в Картах")
+                        .accessibilityIdentifier("event-venue-map")
+                    } else {
+                        Label(event.venue, systemImage: "mappin.and.ellipse")
+                    }
                     if event.isFree || !event.price.isEmpty {
                         Label(event.isFree ? "Вход свободный" : event.price, systemImage: "ticket")
+                            .foregroundStyle(SeruColor.muted)
                     }
                 }
                 .font(.subheadline)
@@ -564,22 +573,19 @@ struct EventDetailView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
+                Rectangle()
+                    .fill(SeruColor.line)
+                    .frame(height: 1)
+                    .accessibilityHidden(true)
+
                 if sessions.count > 1 {
                     sessionList
                 }
                 Text(event.description)
                     .font(.body)
+                    .lineSpacing(4)
                     .foregroundStyle(SeruColor.ink)
                     .textSelection(.enabled)
-                if let venue = EventPresentation.venueURL(event) {
-                    Link(destination: venue) {
-                        Label("Открыть место в Картах", systemImage: "map")
-                            .font(.subheadline.weight(.semibold))
-                            .frame(minHeight: 44)
-                    }
-                    .accessibilityHint("Найти площадку и выбрать маршрут в Картах")
-                    .accessibilityIdentifier("event-venue-map")
-                }
                 if let destination = EventProviderDestination.forEvent(event) {
                     EventProviderAction(destination: destination)
                         .accessibilityIdentifier("event-provider-link-\(event.id)")

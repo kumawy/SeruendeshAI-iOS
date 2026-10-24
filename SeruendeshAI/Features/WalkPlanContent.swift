@@ -20,19 +20,17 @@ struct WalkPlanContent: View {
         VStack(alignment: .leading, spacing: 24) {
             if let route {
                 header(route)
-                mapPreview(route)
-                stopsHeading {
-                    Text("Остановки").font(.title3.weight(.semibold)).foregroundStyle(SeruColor.ink)
-                    if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
-                    Button { showingEditor = true } label: {
-                        Label("Изменить", systemImage: "slider.horizontal.3")
-                            .font(.subheadline.weight(.medium)).frame(minHeight: 44)
+                VStack(alignment: .leading, spacing: 12) {
+                    stopsHeading {
+                        Text("Остановки").font(.headline).foregroundStyle(SeruColor.ink)
+                        if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
+                        Button("Изменить") { showingEditor = true }
+                            .font(.subheadline).frame(minHeight: 44)
+                            .accessibilityIdentifier("plan-edit-stops")
                     }
-                    .accessibilityIdentifier("plan-edit-stops")
+                    timeline(route)
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: route.placeIDs)
                 }
-                .padding(.bottom, -16)
-                timeline(route)
-                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: route.placeIDs)
                 routeNotes(route)
                 actions(route)
                 audioWidget(route)
@@ -82,9 +80,7 @@ struct WalkPlanContent: View {
                 Task { await app.retryPlan() }
             }
         }
-        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .seruCard(radius: 16)
     }
 
     private func durationLabel(_ minutes: Int) -> String {
@@ -112,7 +108,7 @@ struct WalkPlanContent: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 8) {
                 Text(route.name)
-                    .font(.title.weight(.bold))
+                    .font(.title2.weight(.semibold))
                     .foregroundStyle(SeruColor.ink)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
@@ -144,32 +140,6 @@ struct WalkPlanContent: View {
         }
     }
 
-    private func mapPreview(_ route: WalkRoute) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            LiveMapView(screen: .plan, visibleHeight: 190, isEmbedded: true)
-                .frame(height: 190)
-                .clipShape(.rect(cornerRadius: 16))
-                .accessibilityIdentifier("plan-map-preview")
-                .overlay(alignment: .topTrailing) {
-                    Button { app.showFullRoute(route) } label: {
-                        Label("На карте", systemImage: "arrow.up.left.and.arrow.down.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(SeruColor.ink)
-                            .padding(.horizontal, 12).frame(minHeight: 44)
-                            .background(SeruColor.surface, in: .capsule)
-                    }
-                    .buttonStyle(SeruPressStyle())
-                    .accessibilityLabel("Посмотреть маршрут на карте")
-                    .accessibilityIdentifier("plan-route")
-                    .padding(10)
-                }
-            if route.legs.contains(where: { $0.geometry != "network" }) {
-                Text("Пунктир — примерный путь")
-                    .font(.caption2).foregroundStyle(SeruColor.muted)
-            }
-        }
-    }
-
     private func routeNotes(_ route: WalkRoute) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             DisclosureGroup {
@@ -181,7 +151,7 @@ struct WalkPlanContent: View {
                     }
                 }.padding(.top, 8)
             } label: {
-                Label("О времени и пути", systemImage: "info.circle")
+                Text("О времени и пути")
                     .font(.subheadline).frame(minHeight: 44)
             }
             .accessibilityIdentifier("plan-route-notes")
@@ -260,9 +230,7 @@ struct WalkPlanContent: View {
                 Image(systemName: audioGuide.isPlaying ? "stop.fill" : "play.fill")
             }
             .foregroundStyle(SeruColor.ink)
-            .padding(.horizontal, 16)
-            .frame(minHeight: 52)
-            .background(SeruColor.field, in: .rect(cornerRadius: 14))
+            .frame(minHeight: 48)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(audioGuide.isPlaying ? "Остановить аудиогид" : "Включить аудиогид")
@@ -402,7 +370,7 @@ private struct WalkTimelineStop: View {
                             .foregroundStyle(SeruColor.muted)
                     }
                     Spacer(minLength: 0)
-                    Image(systemName: "chevron.right").font(.caption.weight(.medium))
+                    Image(systemName: "chevron.right").font(.system(size: 12, weight: .medium))
                         .foregroundStyle(SeruColor.muted)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
