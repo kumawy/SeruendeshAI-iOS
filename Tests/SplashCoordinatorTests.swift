@@ -18,7 +18,7 @@ struct SplashCoordinatorTests {
 
         try await Task.sleep(for: .milliseconds(1_550))
         #expect(coordinator.phase == .greeting)
-        try await waitUntilDone(coordinator, timeout: 0.85)
+        try await waitUntilDone(coordinator, timeout: 1.15)
         #expect(gate.hasCompleted)
         #expect(coordinator.revealProgress == 1)
     }

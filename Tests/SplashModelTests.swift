@@ -6,10 +6,10 @@ import Testing
 #endif
 
 struct SplashModelTests {
-    @Test func launchAllowsTheFullMascotWaveBeforeADirectFade() {
+    @Test func launchAllowsTheFullMascotWaveBeforeTheCircularReveal() {
         let timing = SplashTiming()
         #expect((1.8...2.0).contains(timing.greetingDuration))
-        #expect((2.0...2.3).contains(timing.totalDuration))
+        #expect((2.2...2.5).contains(timing.totalDuration))
     }
 
     @Test func reducedMotionCompletesWithinAQuarterSecondAndBeforeFullMotion() {

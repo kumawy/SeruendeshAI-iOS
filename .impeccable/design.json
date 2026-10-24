@@ -196,8 +196,8 @@
       },
       {
         "name": "splash",
-        "value": "mascot wave 1.8s + reveal 0.25s",
-        "purpose": "Full one-shot greeting, direct fade without spiral; Reduce Motion uses a static mascot, 0.02s hold + 0.12s fade."
+        "value": "mascot wave 1.8s + circular reveal 0.55s",
+        "purpose": "Full one-shot greeting, expanding circular opening from screen center without spiral; Reduce Motion uses a static mascot, 0.02s hold + 0.12s opacity fade."
       }
     ],
     "breakpoints": []
@@ -292,7 +292,7 @@
       "Do use plain rows and fine dividers for account, saved-place and stop information.",
       "Do keep controls at least 44 pt, expose VoiceOver actions and let accessibility text reflow.",
       "Do keep the map and ordered stops in one walk workspace and preserve approximate-route labels.",
-      "Do preserve mascot assets, local-data behavior and the full greeting with a direct fade."
+      "Do preserve mascot assets, local-data behavior and the full greeting with a circular reveal."
     ],
     "donts": [
       "Don't spread green across ordinary page sections or recolor provider links as app actions.",

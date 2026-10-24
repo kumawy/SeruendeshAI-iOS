@@ -48,3 +48,9 @@
 - Restored the full one-shot mascot greeting with the existing bounded APNG player, at the original visible size:1.8s greeting and a direct0.25s fade. This supersedes the one-second static greeting above. Kept the0.14s static Reduce Motion path, mounted root, session gate and background cancellation.
 - Updated pacing checks first and observed the shortened greeting fail. Final verification:169 SwiftPackage tests,185 iOS unit tests and all11 selected UI cases passed (8 splash,3 profile), `.build/splash-restore.xcresult`.
 - Inspected a fresh native launch recording in `.impeccable/review/splash-restored.mp4`. Independent review confirmed the full gesture settles before the direct crossfade, with no cut, size jump or spiral. Latest build installed on the main iPhone17Pro simulator.
+
+## Circular splash reveal
+- User requested the app opening from the center toward the edges after the greeting. Added a SwiftUI animatable even-odd cover mask: its transparent circular opening expands to the full screen diagonal in0.55s, after the unchanged1.8s greeting. The real root stays mounted; no spiral. Reduce Motion keeps the static0.14s opacity path.
+-169 SwiftPackage tests and13 splash iOS unit tests passed. All8 distinct splash UI scenarios passed across `.build/splash-circle.xcresult` and `.build/splash-circle-rotation-reboot.xcresult`.
+- Investigated a simulator rotation failure that reproduced with the previous overlay as a control. An explicit orientation-event experiment did not solve it and was reverted. Rebooting the QA simulator restored rotation; the original unmodified rotation test passed. No orientation workaround added to the app or tests.
+- Inspected the actual circular opening and clean full-screen endpoint in `.impeccable/review/splash-circle.mp4` and extracted native frames. Independent source review confirmed animation, full-window safe-area coverage, landscape radius, cancellation and Reduce Motion handling.

@@ -23,12 +23,42 @@ struct SeruSplashOverlay: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .opacity(1 - coordinator.revealProgress)
-            .animation(.easeOut(duration: coordinator.fadeDuration), value: coordinator.revealProgress)
+            .opacity(coordinator.usesReducedMotion ? 1 - coordinator.revealProgress : 1)
+            .animation(coordinator.usesReducedMotion ? .easeOut(duration: coordinator.fadeDuration) : nil,
+                       value: coordinator.revealProgress)
+            .animation(.easeOut(duration: coordinator.timing.reducedMotionFade),
+                       value: coordinator.usesReducedMotion)
+            .mask {
+                if coordinator.usesReducedMotion {
+                    Rectangle()
+                } else {
+                    SplashRevealCover(progress: coordinator.revealProgress)
+                        .fill(style: FillStyle(eoFill: true))
+                        .animation(.easeInOut(duration: coordinator.fadeDuration),
+                                   value: coordinator.revealProgress)
+                }
+            }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Серу")
             .accessibilityIdentifier("seru-splash-overlay")
         }
+    }
+}
+
+/// Only the launch cover is masked: the real app stays mounted underneath.
+/// The transparent circle reaches every corner, in either orientation.
+@Animatable
+private struct SplashRevealCover: Shape {
+    var progress: Double
+
+    func path(in rect: CGRect) -> Path {
+        let radius = (hypot(rect.width, rect.height) / 2 + 1) * min(max(progress, 0), 1)
+        var path = Path(rect)
+        if radius > 0 {
+            path.addEllipse(in: CGRect(x: rect.midX - radius, y: rect.midY - radius,
+                                       width: radius * 2, height: radius * 2))
+        }
+        return path
     }
 }
 
@@ -51,6 +81,7 @@ struct SeruSplashContainer<Content: View>: View {
             .overlay {
                 if !coordinator.isComplete {
                     SeruSplashOverlay(coordinator: coordinator, artwork: artwork)
+                        .ignoresSafeArea()
                 }
             }
             .background(SeruColor.background.ignoresSafeArea())
