@@ -210,9 +210,9 @@
       "description": "Native PrimaryAction in SeruTheme.swift. Adaptive light/dark roles, minimum height 50 pt, 12 pt corners; SeruPressStyle respects Reduce Motion."
     },
     {
-      "name": "Plain action and profile control",
+      "name": "Secondary action and profile control",
       "kind": "button",
-      "description": "Native plain Button and ProfileButton. Semantic text or SF Symbol, minimum 44 pt target, descriptive accessibility label."
+      "description": "Native plain secondary Button; ProfileButton uses the circular .glass button style with an 18pt monochrome person symbol and 44pt label on map, Events and Saved headers. Descriptive accessibility label; system menu entries stay native."
     },
     {
       "name": "Conversation composer",

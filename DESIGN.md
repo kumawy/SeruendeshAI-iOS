@@ -253,7 +253,7 @@ Compact event filters, provider actions and Saved thumbnails use 8 pt corners. A
 
 `PrimaryAction` is a full-width adaptive green action with matching foreground, body semibold text, 12 pt corners, vertical padding 10 pt, horizontal padding 12 pt and minimum height 50 pt. Its optional symbol is omitted at accessibility text sizes. It uses `SeruPressStyle`.
 
-Secondary actions are plain text or SF Symbol controls with a minimum 44 pt target. `ProfileButton` is a quiet person symbol. `SavePlaceButton` exposes its saved state and VoiceOver action; native semantic red marks the filled heart. Disabled and in-progress controls keep their existing behavioral states.
+Secondary actions are plain text or SF Symbol controls with a minimum 44 pt target. `ProfileButton` uses the native circular Liquid Glass button style with a monochrome person symbol, consistently on the map, Events and Saved headers. Native menu rows retain their system presentation. `SavePlaceButton` exposes its saved state and VoiceOver action; native semantic red marks the filled heart. Disabled and in-progress controls keep their existing behavioral states.
 
 ### Chips
 

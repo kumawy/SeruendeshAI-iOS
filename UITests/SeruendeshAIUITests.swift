@@ -308,7 +308,8 @@ final class SeruendeshAIUITests: XCTestCase {
     func testDarkThemeScreenshots() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", "dark", "-seru.origin", "Байтерек"]
+        app.launchArguments += ["-seru.dataMode", "demo", "-seru.theme", "dark", "-seru.origin", "Байтерек",
+                                "-seru.saved.places", "(garden,coffee,river)"]
         XCUIDevice.shared.orientation = .portrait
         app.launchArguments += ["-seru.journal.storeID", UUID().uuidString]
         app.launch()

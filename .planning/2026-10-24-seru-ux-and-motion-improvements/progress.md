@@ -54,3 +54,9 @@
 -169 SwiftPackage tests and13 splash iOS unit tests passed. All8 distinct splash UI scenarios passed across `.build/splash-circle.xcresult` and `.build/splash-circle-rotation-reboot.xcresult`.
 - Investigated a simulator rotation failure that reproduced with the previous overlay as a control. An explicit orientation-event experiment did not solve it and was reverted. Rebooting the QA simulator restored rotation; the original unmodified rotation test passed. No orientation workaround added to the app or tests.
 - Inspected the actual circular opening and clean full-screen endpoint in `.impeccable/review/splash-circle.mp4` and extracted native frames. Independent source review confirmed animation, full-window safe-area coverage, landscape radius, cancellation and Reduce Motion handling.
+
+## Native glass profile buttons
+- User requested Apple Liquid Glass for profile icons throughout the app. Shared ProfileButton now uses native `.glass` button style and circular border shape, preserving its person symbol,44pt label and accessibility names/identifiers. Applies to map, Events and Saved headers; native profile menu rows keep their system presentation.
+- Inspected fresh native dark/light captures; independent review confirmed one glass surface, centered symbol and no clipping. Latest app installed on the main simulator.
+- Three relevant UI journeys passed: light Events/profile/provider flow, Saved/profile controls and full dark screenshot tour. Evidence: `.build/profile-liquid-glass.xcresult` (light case) and `.build/profile-liquid-glass-final.xcresult` (both final cases).
+- The first dark tour failed because persisted test favorites were empty while the screenshot scenario assumed a Botanical Garden card. Confirmed the stored array was empty and supplied explicit launch-only favorites for that existing test. The complete tour then passed; production data behavior was unchanged.

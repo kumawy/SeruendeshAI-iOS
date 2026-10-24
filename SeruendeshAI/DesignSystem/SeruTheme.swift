@@ -163,9 +163,10 @@ struct ProfileButton: View {
                 .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(SeruColor.ink)
                 .frame(width: 44, height: 44)
-                .contentShape(.rect)
+                .contentShape(.circle)
         }
-        .buttonStyle(SeruPressStyle())
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
         .accessibilityLabel("Профиль и настройки")
     }
 }
