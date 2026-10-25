@@ -26,12 +26,7 @@ targets:
     sources:
       - path: SeruendeshAI
         excludes:
-          - Resources/SeruSplash
-          - Resources/SeruEmptyBox
           - Resources/SeruMotion
-      - path: SeruendeshAI/Resources/SeruSplash
-        type: folder
-        buildPhase: resources
       - path: SeruendeshAI/Resources/SeruMotion
         type: folder
         buildPhase: resources

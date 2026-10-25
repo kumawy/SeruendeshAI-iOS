@@ -17,14 +17,7 @@ enum SeruMascotScene: String, CaseIterable, Sendable {
     }
 
     func resourceDirectory(in root: URL) -> URL {
-        let native = root.appendingPathComponent("SeruMotion/\(rawValue)", isDirectory: true)
-        if FileManager.default.fileExists(atPath: native.path) { return native }
-        // Existing shipped PNG sequences remain usable during an incremental asset update.
-        switch self {
-        case .emptyBox: return root.appendingPathComponent("SeruEmptyBox", isDirectory: true)
-        case .greeting: return root.appendingPathComponent("SeruSplash", isDirectory: true)
-        default: return native
-        }
+        root.appendingPathComponent("SeruMotion/\(rawValue)", isDirectory: true)
     }
 }
 

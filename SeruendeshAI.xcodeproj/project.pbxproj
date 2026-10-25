@@ -61,7 +61,6 @@
 		C26B2D88F3856D17720BC67D /* EventPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A2DAA3125ACE495FB084BAD /* EventPresentation.swift */; };
 		C8C9E0F8EC135476835297A7 /* SplashCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB7A20381414321C4A130F8E /* SplashCoordinatorTests.swift */; };
 		CA21486050F5DA2B83B3154A /* RoutePreviewContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98124DE3AC7E9DA2B199D10C /* RoutePreviewContent.swift */; };
-		CAF50DD610BEE803B305CB4A /* SeruSplash in Resources */ = {isa = PBXBuildFile; fileRef = 553AA283B4CADB6A281D1B69 /* SeruSplash */; };
 		D58291D2288FD82A8786E2CB /* ChatAttachmentLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE918F3C23CBD31D7ED134CD /* ChatAttachmentLoader.swift */; };
 		D6A93C1A9A7C8484EED62896 /* SplashUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E430655871DA7F19917B76B8 /* SplashUITests.swift */; };
 		D9C5ACC54F38D19B8541AFFE /* DemoMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB94785FA32E1BF5D1B3BD1C /* DemoMapView.swift */; };
@@ -127,7 +126,6 @@
 		4D65F74A9A304D1A89415FB8 /* SavedEventsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedEventsTests.swift; sourceTree = "<group>"; };
 		4DAB5560F1F68E22BCABCECA /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		547E9AD72257B2D79B70A6E9 /* ChatScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatScreen.swift; sourceTree = "<group>"; };
-		553AA283B4CADB6A281D1B69 /* SeruSplash */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SeruSplash; path = SeruendeshAI/Resources/SeruSplash; sourceTree = SOURCE_ROOT; };
 		5D4A3D2C99880470DFE04728 /* SavedMascotAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedMascotAnimation.swift; sourceTree = "<group>"; };
 		5F30CE2A77707B7187425038 /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
 		5F502126BDC193A26E31C69E /* SplashModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashModel.swift; sourceTree = "<group>"; };
@@ -195,7 +193,6 @@
 			children = (
 				C449148C112D561E7EA08592 /* PhotoCredits.json */,
 				EEA8E8927643D996FDF865EC /* SeruMotion */,
-				553AA283B4CADB6A281D1B69 /* SeruSplash */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -445,7 +442,6 @@
 				EEB542709A0004F2AE17F0BE /* Assets.xcassets in Resources */,
 				43998C13B7B854E68E40B7B2 /* PhotoCredits.json in Resources */,
 				DD4133D0B009B13B33ECDA1E /* SeruMotion in Resources */,
-				CAF50DD610BEE803B305CB4A /* SeruSplash in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

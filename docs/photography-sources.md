@@ -33,7 +33,3 @@ The local events are fictional examples. Their new photographic covers are thema
 The jazz cover is an archival photograph of a 1960 Rotterdam performance, not the fictional Astana summer concert. The museum cover depicts historic public-domain artworks in Copenhagen, not the fictional Steppe Art exhibition. The night sky was photographed in California on 14 April 2024, not at the Astana Botanical Garden. The NASA image contains no NASA logo or identifiable person and is credited to NASA / Preston Dyches; its use implies no NASA endorsement.
 
 The old jazz image had malformed festival lettering; the astronomy cover depicted an unverified crowd and setting. They were replaced to avoid invented-looking show documentation. The original images have no repository provenance, so appearance alone cannot establish whether they were generated.
-
-## Unused artwork retained
-
-Unused historical `chat-*`, `detail-*`, `plan-asset-002`, and `plan-asset-003` artwork is retained rather than blindly changing assets that current Swift views do not reference.

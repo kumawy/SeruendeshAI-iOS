@@ -31,19 +31,6 @@ extension UIColor {
     }
 }
 
-struct FigmaIcon: View {
-    let screen: String
-    let index: Int
-    var size: CGFloat = 18
-    @Environment(\.colorScheme) private var scheme
-    var body: some View {
-        Image(String(format: "%@-asset-%03d", screen, index))
-            .resizable().scaledToFit().frame(width: size, height: size)
-            .saturation(scheme == .dark ? 0.45 : 1)
-            .accessibilityHidden(true)
-    }
-}
-
 struct PrimaryAction: View {
     let title: String
     var symbol: String? = nil
