@@ -17,7 +17,7 @@ Help a person choose places in Astana and make a walk from a starting point, ava
 - Routes and events cannot be saved as favorites. Places can be saved.
 - Local event examples link honestly to city listings on Sxodim/Ticketon; supplied real event links retain their exact destination.
 - Estimated local walking geometry remains labelled as approximate; no invented GPS or network routing.
-- Keep the private pet_project recovery repository and main branch; no new branches in other repositories.
+- Keep the SeruendeshAI-iOS repository and main branch; no new branches in other repositories.
 
 ## Brand Commitments
 
